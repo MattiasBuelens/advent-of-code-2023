@@ -8,7 +8,7 @@ struct Game {
     sets: Vec<Set>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 struct Set {
     red: u32,
     green: u32,
@@ -52,6 +52,14 @@ fn parse(input: &str) -> Vec<Game> {
     input.lines().map(|line| line.parse().unwrap()).collect()
 }
 
+impl Game {
+    fn is_possible(&self, bag: &Set) -> bool {
+        self.sets
+            .iter()
+            .all(|set| set.red <= bag.red && set.green <= bag.green && set.blue <= bag.blue)
+    }
+}
+
 #[aoc(day2, part1)]
 fn part1(input: &[Game]) -> u32 {
     let bag = Set {
@@ -59,35 +67,50 @@ fn part1(input: &[Game]) -> u32 {
         green: 13,
         blue: 14,
     };
-    let possible_games = input.iter().filter(|game| {
-        game.sets
-            .iter()
-            .all(|set| set.red <= bag.red && set.green <= bag.green && set.blue <= bag.blue)
-    });
+    let possible_games = input.iter().filter(|game| game.is_possible(&bag));
     possible_games.map(|game| game.id).sum()
 }
 
+impl Game {
+    fn min_cubes(&self) -> Set {
+        let mut bag = Set::default();
+        for set in &self.sets {
+            bag.red = bag.red.max(set.red);
+            bag.green = bag.green.max(set.green);
+            bag.blue = bag.blue.max(set.blue);
+        }
+        bag
+    }
+}
+
+impl Set {
+    fn power(&self) -> u32 {
+        self.red * self.green * self.blue
+    }
+}
+
 #[aoc(day2, part2)]
-fn part2(_input: &[Game]) -> String {
-    todo!()
+fn part2(input: &[Game]) -> u32 {
+    input.iter().map(|game| game.min_cubes().power()).sum()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn part1_example() {
-        let input = "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
+    const INPUT: &str = "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
 Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue
 Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
 Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
 Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
-        assert_eq!(part1(&parse(input)), 8);
+
+    #[test]
+    fn part1_example() {
+        assert_eq!(part1(&parse(INPUT)), 8);
     }
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
+        assert_eq!(part2(&parse(INPUT)), 2286);
     }
 }
