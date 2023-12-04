@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
+#[derive(Debug)]
 struct Scratchcard {
     winning: Vec<u32>,
     have: Vec<u32>,
@@ -25,16 +26,17 @@ fn parse(input: &str) -> Vec<Scratchcard> {
 }
 
 impl Scratchcard {
-    fn points(&self) -> u32 {
-        let matches = self
-            .winning
+    fn count_matches(&self) -> usize {
+        self.winning
             .iter()
             .filter(|&&winning| self.have.contains(&winning))
-            .count() as u32;
-        if matches == 0 {
-            0
-        } else {
-            2u32.pow(matches - 1)
+            .count()
+    }
+
+    fn points(&self) -> u32 {
+        match self.count_matches() as u32 {
+            0 => 0,
+            matches => 2u32.pow(matches - 1),
         }
     }
 }
@@ -45,8 +47,17 @@ fn part1(input: &[Scratchcard]) -> u32 {
 }
 
 #[aoc(day4, part2)]
-fn part2(_input: &[Scratchcard]) -> u32 {
-    todo!()
+fn part2(input: &[Scratchcard]) -> u32 {
+    // Start with one original for each card
+    let mut card_counts = vec![1u32; input.len()];
+    for (card_idx, card) in input.iter().enumerate() {
+        let card_count = card_counts[card_idx];
+        let card_matches = card.count_matches();
+        for i in 1..=card_matches {
+            card_counts[card_idx + i] += card_count;
+        }
+    }
+    card_counts.into_iter().sum()
 }
 
 #[cfg(test)]
@@ -67,6 +78,6 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11";
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse(INPUT)), 0);
+        assert_eq!(part2(&parse(INPUT)), 30);
     }
 }
