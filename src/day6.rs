@@ -1,12 +1,11 @@
-use aoc_runner_derive::{aoc, aoc_generator};
+use aoc_runner_derive::aoc;
 
 struct Race {
     time: u64,
     distance: u64,
 }
 
-#[aoc_generator(day6)]
-fn parse(input: &str) -> Vec<Race> {
+fn parse_part1(input: &str) -> Vec<Race> {
     let mut lines = input.lines();
     let times = lines.next().unwrap().strip_prefix("Time:").unwrap();
     let distances = lines.next().unwrap().strip_prefix("Distance:").unwrap();
@@ -43,13 +42,34 @@ impl Race {
 }
 
 #[aoc(day6, part1)]
-fn part1(input: &[Race]) -> u64 {
-    input.iter().map(|race| race.ways_to_win()).product()
+fn part1(input: &str) -> u64 {
+    let races = parse_part1(input);
+    races.iter().map(|race| race.ways_to_win()).product()
+}
+
+fn parse_part2(input: &str) -> Race {
+    let mut lines = input.lines();
+    let time = lines.next().unwrap().strip_prefix("Time:").unwrap();
+    let distance = lines.next().unwrap().strip_prefix("Distance:").unwrap();
+    let time = time
+        .chars()
+        .filter(|&c| c != ' ')
+        .collect::<String>()
+        .parse()
+        .unwrap();
+    let distance = distance
+        .chars()
+        .filter(|&c| c != ' ')
+        .collect::<String>()
+        .parse()
+        .unwrap();
+    Race { time, distance }
 }
 
 #[aoc(day6, part2)]
-fn part2(input: &[Race]) -> u64 {
-    todo!()
+fn part2(input: &str) -> u64 {
+    let race = parse_part2(input);
+    race.ways_to_win()
 }
 
 #[cfg(test)]
@@ -61,11 +81,11 @@ Distance:  9  40  200";
 
     #[test]
     fn part1_example() {
-        assert_eq!(part1(&parse(INPUT)), 288);
+        assert_eq!(part1(INPUT), 288);
     }
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse(INPUT)), 0);
+        assert_eq!(part2(INPUT), 71503);
     }
 }
