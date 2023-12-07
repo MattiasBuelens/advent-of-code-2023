@@ -78,14 +78,15 @@ fn parse(input: &str) -> Vec<Bid> {
 }
 
 impl Card {
-    fn power(self) -> u8 {
+    fn power(self, part2: bool) -> u8 {
         match self.0 {
-            'A' => 12,
-            'K' => 11,
-            'Q' => 10,
-            'J' => 9,
-            'T' => 8,
-            c @ '2'..='9' => (c.to_digit(10).unwrap() as u8) - 2,
+            'A' => 14,
+            'K' => 13,
+            'Q' => 12,
+            'J' if part2 => 1,
+            'J' => 11,
+            'T' => 10,
+            c @ '2'..='9' => c.to_digit(10).unwrap() as u8,
             c => panic!("invalid card {c}"),
         }
     }
@@ -103,16 +104,31 @@ enum HandType {
 }
 
 impl Hand {
-    fn hand_type(&self) -> HandType {
+    fn hand_type(&self, part2: bool) -> HandType {
         let cards = &self.0;
         let mut card_counts = HashMap::<Card, usize>::new();
         for card in cards {
             *card_counts.entry(*card).or_default() += 1;
         }
+        let joker_count = if part2 {
+            card_counts.get(&Card('J')).copied().unwrap_or_default()
+        } else {
+            0
+        };
+        if joker_count == 5 {
+            // All cards are jokers
+            return HandType::FiveOfAKind;
+        }
         let (&max_card, &max_count) = card_counts
             .iter()
+            .filter(|(card, _count)| {
+                // Skip jokers
+                !(part2 && **card == Card('J'))
+            })
             .max_by_key(|(_card, count)| **count)
             .unwrap();
+        // Add jokers to card with highest count
+        let max_count = max_count + joker_count;
         if max_count == 5 {
             return HandType::FiveOfAKind;
         }
@@ -121,7 +137,13 @@ impl Hand {
         }
         let (_second_max_card, &second_max_count) = card_counts
             .iter()
-            .filter(|(card, _count)| **card != max_card)
+            .filter(|(card, _count)| {
+                // Skip jokers
+                !(part2 && **card == Card('J'))
+            })
+            .filter(|(card, _count)| {
+                **card != max_card
+            })
             .max_by_key(|(_card, count)| **count)
             .unwrap();
         if max_count == 3 && second_max_count == 2 {
@@ -139,29 +161,20 @@ impl Hand {
         HandType::HighCard
     }
 
-    fn power(&self) -> impl Iterator<Item = u8> + '_ {
-        self.0.iter().map(|card| card.power())
+    fn power(&self, part2: bool) -> impl Iterator<Item=u8> + '_ {
+        self.0.iter().map(move |card| card.power(part2))
     }
 }
 
-impl Ord for Hand {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.hand_type()
-            .cmp(&other.hand_type())
-            .then_with(|| self.power().cmp(other.power()))
-    }
+fn compare_hands(left: &Hand, right: &Hand, part2: bool) -> Ordering {
+    left.hand_type(part2)
+        .cmp(&right.hand_type(part2))
+        .then_with(|| left.power(part2).cmp(right.power(part2)))
 }
 
-impl PartialOrd for Hand {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-#[aoc(day7, part1)]
-fn part1(input: &[Bid]) -> u32 {
-    let mut ranked_bids = input.to_vec();
-    ranked_bids.sort_by_key(|bid| bid.hand);
+fn solve(bids: &[Bid], part2: bool) -> u32 {
+    let mut ranked_bids = bids.to_vec();
+    ranked_bids.sort_by(|left, right| compare_hands(&left.hand, &right.hand, part2));
     ranked_bids
         .into_iter()
         .enumerate()
@@ -169,9 +182,14 @@ fn part1(input: &[Bid]) -> u32 {
         .sum()
 }
 
+#[aoc(day7, part1)]
+fn part1(input: &[Bid]) -> u32 {
+    solve(input, false)
+}
+
 #[aoc(day7, part2)]
 fn part2(input: &[Bid]) -> u32 {
-    todo!()
+    solve(input, true)
 }
 
 #[cfg(test)]
@@ -191,6 +209,6 @@ QQQJA 483";
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse(INPUT)), 0);
+        assert_eq!(part2(&parse(INPUT)), 5905);
     }
 }
