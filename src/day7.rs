@@ -6,33 +6,18 @@ use std::str::FromStr;
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
-struct Card(u8);
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+struct Card(char);
 
 impl Card {
     fn parse(c: char) -> Card {
-        Card(match c {
-            'A' => 12,
-            'K' => 11,
-            'Q' => 10,
-            'J' => 9,
-            'T' => 8,
-            '2'..='9' => (c.to_digit(10).unwrap() as u8) - 2,
-            _ => panic!("invalid card {c}"),
-        })
+        Card(c)
     }
 }
 
 impl Display for Card {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_char(match self.0 {
-            12 => 'A',
-            11 => 'K',
-            10 => 'Q',
-            9 => 'J',
-            8 => 'T',
-            c => ('2' as u8 + c) as char,
-        })
+        f.write_char(self.0)
     }
 }
 
@@ -92,6 +77,20 @@ fn parse(input: &str) -> Vec<Bid> {
     input.lines().map(|line| line.parse().unwrap()).collect()
 }
 
+impl Card {
+    fn power(self) -> u8 {
+        match self.0 {
+            'A' => 12,
+            'K' => 11,
+            'Q' => 10,
+            'J' => 9,
+            'T' => 8,
+            c @ '2'..='9' => (c.to_digit(10).unwrap() as u8) - 2,
+            c => panic!("invalid card {c}"),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 enum HandType {
     HighCard,
@@ -139,13 +138,17 @@ impl Hand {
         }
         HandType::HighCard
     }
+
+    fn power(&self) -> impl Iterator<Item = u8> + '_ {
+        self.0.iter().map(|card| card.power())
+    }
 }
 
 impl Ord for Hand {
     fn cmp(&self, other: &Self) -> Ordering {
         self.hand_type()
             .cmp(&other.hand_type())
-            .then_with(|| self.0.iter().cmp(other.0.iter()))
+            .then_with(|| self.power().cmp(other.power()))
     }
 }
 
