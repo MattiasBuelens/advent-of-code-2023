@@ -47,7 +47,7 @@ fn parse(input: &str) -> Input {
     Input { steps, nodes }
 }
 
-fn solve(start: &String, is_goal: impl Fn(&String) -> bool, input: &Input) -> i64 {
+fn solve(start: &str, is_goal: impl Fn(&str) -> bool, input: &Input) -> i64 {
     let mut current = start;
     let mut steps = input.steps.iter().cycle();
     let mut step_count = 0;
@@ -65,7 +65,7 @@ fn solve(start: &String, is_goal: impl Fn(&String) -> bool, input: &Input) -> i6
 
 #[aoc(day8, part1)]
 fn part1(input: &Input) -> i64 {
-    solve(&"AAA".to_string(), |label| label == "ZZZ", input)
+    solve("AAA", |label| label == "ZZZ", input)
 }
 
 #[aoc(day8, part2)]
