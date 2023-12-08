@@ -196,7 +196,7 @@ fn part2(input: &[Bid]) -> u32 {
 mod tests {
     use super::*;
 
-    const INPUT: &'static str = "32T3K 765
+    const INPUT: &str = "32T3K 765
 T55J5 684
 KK677 28
 KTJJT 220

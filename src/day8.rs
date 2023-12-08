@@ -70,18 +70,12 @@ fn part1(input: &Input) -> i64 {
 
 #[aoc(day8, part2)]
 fn part2(input: &Input) -> i64 {
-    let start_labels = input
+    input
         .nodes
         .keys()
         .filter(|label| label.ends_with('A'))
-        .collect::<Vec<_>>();
-    let solutions = start_labels
-        .iter()
         .map(|start| solve(start, |label| label.ends_with('Z'), input))
-        .collect::<Vec<_>>();
-    solutions
-        .iter()
-        .fold(1, |steps, &solution| lcm_64(steps, solution))
+        .fold(1, lcm_64)
 }
 
 #[cfg(test)]
