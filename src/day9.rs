@@ -27,7 +27,15 @@ fn part1(input: &[Vec<i64>]) -> i64 {
 
 #[aoc(day9, part2)]
 fn part2(input: &[Vec<i64>]) -> i64 {
-    todo!()
+    let reversed_inputs = input
+        .iter()
+        .cloned()
+        .map(|mut sequence| {
+            sequence.reverse();
+            sequence
+        })
+        .collect::<Vec<_>>();
+    part1(&reversed_inputs)
 }
 
 #[cfg(test)]
@@ -45,6 +53,6 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse(INPUT)), 0);
+        assert_eq!(part2(&parse(INPUT)), 2);
     }
 }
