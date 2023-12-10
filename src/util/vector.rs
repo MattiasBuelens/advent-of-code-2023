@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-#[derive(Eq, PartialEq, Copy, Clone, Hash)]
+#[derive(Eq, PartialEq, Copy, Clone, Hash, Ord, PartialOrd)]
 pub struct Vector<const N: usize> {
     pub coords: [i32; N],
 }

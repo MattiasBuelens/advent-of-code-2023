@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
@@ -139,28 +139,31 @@ fn parse(input: &str) -> Input {
         .collect::<Vec<_>>();
     let start_pipe = Pipe::from_neighbours(start_directions.try_into().unwrap());
     pipes.insert(start, start_pipe);
+
     Input { pipes, start }
 }
 
 #[derive(Debug)]
 struct State {
     pos: Vector2D,
-    dir: Direction,
+    in_dir: Direction,
+    out_dir: Direction,
 }
 
 impl State {
     fn step(self, pipes: &Pipes) -> Self {
-        let next_pos = self.pos + self.dir.step();
+        let next_pos = self.pos + self.out_dir.step();
         let next_pipe = pipes.get(&next_pos).unwrap();
-        let from_dir = self.dir.opposite();
-        let next_dir = *next_pipe
+        let in_dir = self.out_dir.opposite();
+        let out_dir = *next_pipe
             .neighbours()
             .iter()
-            .find(|&&dir| dir != from_dir)
+            .find(|&&dir| dir != in_dir)
             .unwrap();
         Self {
             pos: next_pos,
-            dir: next_dir,
+            in_dir,
+            out_dir,
         }
     }
 }
@@ -168,10 +171,18 @@ impl State {
 #[aoc(day10, part1)]
 fn part1(input: &Input) -> u32 {
     let start_neighbours = input.pipes.get(&input.start).unwrap().neighbours();
-    let mut states = start_neighbours.map(|dir| State {
-        pos: input.start,
-        dir,
-    });
+    let mut states = [
+        State {
+            pos: input.start,
+            in_dir: start_neighbours[0],
+            out_dir: start_neighbours[1],
+        },
+        State {
+            pos: input.start,
+            in_dir: start_neighbours[1],
+            out_dir: start_neighbours[0],
+        },
+    ];
     let mut steps = 0;
     loop {
         states = states.map(|state| state.step(&input.pipes));
@@ -183,9 +194,71 @@ fn part1(input: &Input) -> u32 {
     steps
 }
 
+fn find_main_loop(input: &Input) -> HashSet<Vector2D> {
+    let mut main_loop = HashSet::new();
+    let start_neighbours = input.pipes.get(&input.start).unwrap().neighbours();
+    let mut state = State {
+        pos: input.start,
+        in_dir: start_neighbours[0],
+        out_dir: start_neighbours[1],
+    };
+    loop {
+        main_loop.insert(state.pos);
+        state = state.step(&input.pipes);
+        if &state.pos == &input.start {
+            break;
+        }
+    }
+    main_loop
+}
+
+impl Direction {
+    fn rotate_left(self) -> Self {
+        match self {
+            Direction::N => Direction::W,
+            Direction::W => Direction::S,
+            Direction::S => Direction::E,
+            Direction::E => Direction::N,
+        }
+    }
+}
+
 #[aoc(day10, part2)]
-fn part2(input: &Input) -> String {
-    todo!()
+fn part2(input: &Input) -> u32 {
+    let main_loop = find_main_loop(input);
+    let mut in_loop = HashSet::<Vector2D>::new();
+    // Start in the top-left corner of the loop.
+    let start = *main_loop.iter().min().unwrap();
+    assert_eq!(input.pipes.get(&start), Some(&Pipe::F));
+    // Follow main loop in clockwise direction.
+    let mut state = State {
+        pos: start,
+        in_dir: Direction::S,
+        out_dir: Direction::E,
+    };
+    loop {
+        // Find ground tiles "inside" the loop,
+        // starting from this loop pipe and working our way
+        // to the other side of the loop.
+        let mut inside_dir = state.in_dir.rotate_left();
+        while inside_dir != state.out_dir {
+            // Mark everything, until we hit the main loop again.
+            let step = inside_dir.step();
+            let mut inside_pos = state.pos + step;
+            while !main_loop.contains(&inside_pos) {
+                in_loop.insert(inside_pos);
+                inside_pos += step;
+            }
+            // Rotate left, within the inside of the shape.
+            inside_dir = inside_dir.rotate_left();
+        }
+        // Move along the main loop
+        state = state.step(&input.pipes);
+        if &state.pos == &start {
+            break;
+        }
+    }
+    in_loop.len() as u32
 }
 
 #[cfg(test)]
@@ -209,8 +282,40 @@ LJ.LJ";
         assert_eq!(part1(&parse(COMPLEX_LOOP)), 8);
     }
 
+    const ENCLOSED1: &str = "..........
+.S------7.
+.|F----7|.
+.||....||.
+.||....||.
+.|L-7F-J|.
+.|..||..|.
+.L--JL--J.
+..........";
+    const ENCLOSED2: &str = ".F----7F7F7F7F-7....
+.|F--7||||||||FJ....
+.||.FJ||||||||L7....
+FJL7L7LJLJ||LJ.L-7..
+L--J.L7...LJS7F-7L7.
+....F-J..F7FJ|L7L7L7
+....L7.F7||L7|.L7L7|
+.....|FJLJ|FJ|F7|.LJ
+....FJL-7.||.||||...
+....L---J.LJ.LJLJ...";
+    const ENCLOSED3: &str = "FF7FSF7F7F7F7F7F---7
+L|LJ||||||||||||F--J
+FL-7LJLJ||||||LJL-77
+F--JF--7||LJLJ7F7FJ-
+L---JF-JLJ.||-FJLJJ7
+|F|F-JF---7F7-L7L|7|
+|FFJF7L7F-JF7|JL---7
+7-L-JL7||F7|L7F-7F7|
+L.L7LFJ|||||FJL7||LJ
+L7JLJL-JLJLJL--JLJ.L";
+
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse("<EXAMPLE>")), "<RESULT>");
+        assert_eq!(part2(&parse(ENCLOSED1)), 4);
+        assert_eq!(part2(&parse(ENCLOSED2)), 8);
+        assert_eq!(part2(&parse(ENCLOSED3)), 10);
     }
 }
