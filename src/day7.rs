@@ -141,9 +141,7 @@ impl Hand {
                 // Skip jokers
                 !(part2 && **card == Card('J'))
             })
-            .filter(|(card, _count)| {
-                **card != max_card
-            })
+            .filter(|(card, _count)| **card != max_card)
             .max_by_key(|(_card, count)| **count)
             .unwrap();
         if max_count == 3 && second_max_count == 2 {
@@ -161,7 +159,7 @@ impl Hand {
         HandType::HighCard
     }
 
-    fn power(&self, part2: bool) -> impl Iterator<Item=u8> + '_ {
+    fn power(&self, part2: bool) -> impl Iterator<Item = u8> + '_ {
         self.0.iter().map(move |card| card.power(part2))
     }
 }
