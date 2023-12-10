@@ -282,8 +282,12 @@ SJLL7
 LJ.LJ";
 
     #[test]
-    fn part1_example() {
+    fn part1_square_loop() {
         assert_eq!(part1(&parse(SQUARE_LOOP)), 4);
+    }
+
+    #[test]
+    fn part1_complex_loop() {
         assert_eq!(part1(&parse(COMPLEX_LOOP)), 8);
     }
 
@@ -318,9 +322,17 @@ L.L7LFJ|||||FJL7||LJ
 L7JLJL-JLJLJL--JLJ.L";
 
     #[test]
-    fn part2_example() {
+    fn part2_example1() {
         assert_eq!(part2(&parse(ENCLOSED1)), 4);
+    }
+
+    #[test]
+    fn part2_example2() {
         assert_eq!(part2(&parse(ENCLOSED2)), 8);
+    }
+
+    #[test]
+    fn part2_example3() {
         assert_eq!(part2(&parse(ENCLOSED3)), 10);
     }
 }
