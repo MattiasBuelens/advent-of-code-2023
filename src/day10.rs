@@ -74,12 +74,21 @@ impl Pipe {
             if directions.contains(&Direction::E) {
                 return Pipe::F;
             }
-        } else if directions.contains(&Direction::W) {
-            if directions.contains(&Direction::E) {
-                return Pipe::Hori;
-            }
+        } else if directions.contains(&Direction::W) && directions.contains(&Direction::E) {
+            return Pipe::Hori;
         }
         panic!("invalid directions: {directions:?}");
+    }
+
+    fn other_neighbour(self, direction: Direction) -> Direction {
+        let directions = self.neighbours();
+        if direction == directions[0] {
+            directions[1]
+        } else if direction == directions[1] {
+            directions[0]
+        } else {
+            panic!("invalid neighbour: {direction:?}");
+        }
     }
 }
 
@@ -155,11 +164,7 @@ impl State {
         let next_pos = self.pos + self.out_dir.step();
         let next_pipe = pipes.get(&next_pos).unwrap();
         let in_dir = self.out_dir.opposite();
-        let out_dir = *next_pipe
-            .neighbours()
-            .iter()
-            .find(|&&dir| dir != in_dir)
-            .unwrap();
+        let out_dir = next_pipe.other_neighbour(in_dir);
         Self {
             pos: next_pos,
             in_dir,
@@ -187,7 +192,7 @@ fn part1(input: &Input) -> u32 {
     loop {
         states = states.map(|state| state.step(&input.pipes));
         steps += 1;
-        if &states[0].pos == &states[1].pos {
+        if states[0].pos == states[1].pos {
             break;
         }
     }
@@ -205,7 +210,7 @@ fn find_main_loop(input: &Input) -> HashSet<Vector2D> {
     loop {
         main_loop.insert(state.pos);
         state = state.step(&input.pipes);
-        if &state.pos == &input.start {
+        if state.pos == input.start {
             break;
         }
     }
@@ -254,7 +259,7 @@ fn part2(input: &Input) -> u32 {
         }
         // Move along the main loop
         state = state.step(&input.pipes);
-        if &state.pos == &start {
+        if state.pos == start {
             break;
         }
     }
