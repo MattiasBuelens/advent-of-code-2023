@@ -78,7 +78,7 @@ fn part1(input: &Image) -> i64 {
 
 #[aoc(day11, part2)]
 fn part2(input: &Image) -> i64 {
-    input.clone().expand(1_000_000).total_distance()
+    input.clone().expand(1_000_000 - 1).total_distance()
 }
 
 #[cfg(test)]
@@ -104,12 +104,12 @@ mod tests {
     #[test]
     fn part2_example1() {
         let input = parse(INPUT);
-        assert_eq!(input.expand(10).total_distance(), 1030);
+        assert_eq!(input.expand(10 - 1).total_distance(), 1030);
     }
 
     #[test]
     fn part2_example2() {
         let input = parse(INPUT);
-        assert_eq!(input.expand(100).total_distance(), 8410);
+        assert_eq!(input.expand(100 - 1).total_distance(), 8410);
     }
 }
