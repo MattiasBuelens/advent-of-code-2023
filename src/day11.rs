@@ -46,13 +46,13 @@ impl Image {
             .collect()
     }
 
-    fn expand(mut self, expansion: i32) -> Self {
+    fn expand(mut self, factor: i32) -> Self {
         let empty_columns = self.empty_columns();
         let empty_rows = self.empty_rows();
         for galaxy in self.galaxies.iter_mut() {
             let x_offset = empty_columns.iter().filter(|&&x| x < galaxy.x()).count() as i32;
             let y_offset = empty_rows.iter().filter(|&&y| y < galaxy.y()).count() as i32;
-            *galaxy += Vector2D::new(x_offset * expansion, y_offset * expansion);
+            *galaxy += Vector2D::new(x_offset * (factor - 1), y_offset * (factor - 1));
         }
         self.width += empty_columns.len() as i32;
         self.height += empty_rows.len() as i32;
@@ -73,12 +73,12 @@ impl Image {
 
 #[aoc(day11, part1)]
 fn part1(input: &Image) -> i64 {
-    input.clone().expand(1).total_distance()
+    input.clone().expand(2).total_distance()
 }
 
 #[aoc(day11, part2)]
 fn part2(input: &Image) -> i64 {
-    input.clone().expand(1_000_000 - 1).total_distance()
+    input.clone().expand(1_000_000).total_distance()
 }
 
 #[cfg(test)]
@@ -104,12 +104,12 @@ mod tests {
     #[test]
     fn part2_example1() {
         let input = parse(INPUT);
-        assert_eq!(input.expand(10 - 1).total_distance(), 1030);
+        assert_eq!(input.expand(10).total_distance(), 1030);
     }
 
     #[test]
     fn part2_example2() {
         let input = parse(INPUT);
-        assert_eq!(input.expand(100 - 1).total_distance(), 8410);
+        assert_eq!(input.expand(100).total_distance(), 8410);
     }
 }
