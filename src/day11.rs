@@ -34,69 +34,51 @@ fn parse(input: &str) -> Image {
 }
 
 impl Image {
-    fn expand(&self) -> Self {
-        let old_galaxies = &self.galaxies;
-        let mut galaxies = Vec::new();
-        let mut x_offset = 0;
-        for x in 0..self.width {
-            let column = old_galaxies
-                .iter()
-                .filter(|pos| pos.x() == x)
-                .copied()
-                .collect::<Vec<_>>();
-            if column.is_empty() {
-                x_offset += 1;
-            } else {
-                for mut galaxy in column {
-                    *galaxy.x_mut() += x_offset;
-                    galaxies.push(galaxy);
-                }
+    fn empty_columns(&self) -> Vec<i32> {
+        (0..self.width)
+            .filter(|&x| self.galaxies.iter().filter(|pos| pos.x() == x).count() == 0)
+            .collect()
+    }
+
+    fn empty_rows(&self) -> Vec<i32> {
+        (0..self.height)
+            .filter(|&y| self.galaxies.iter().filter(|pos| pos.y() == y).count() == 0)
+            .collect()
+    }
+
+    fn expand(mut self, expansion: i32) -> Self {
+        let empty_columns = self.empty_columns();
+        let empty_rows = self.empty_rows();
+        for galaxy in self.galaxies.iter_mut() {
+            let x_offset = empty_columns.iter().filter(|&&x| x < galaxy.x()).count() as i32;
+            let y_offset = empty_rows.iter().filter(|&&y| y < galaxy.y()).count() as i32;
+            *galaxy += Vector2D::new(x_offset * expansion, y_offset * expansion);
+        }
+        self.width += empty_columns.len() as i32;
+        self.height += empty_rows.len() as i32;
+        self
+    }
+
+    fn total_distance(&self) -> i64 {
+        let mut total_distance = 0;
+        for (i, &left) in self.galaxies.iter().enumerate() {
+            for &right in self.galaxies.iter().skip(i + 1) {
+                let distance = (left - right).manhattan_distance();
+                total_distance += distance as i64;
             }
         }
-        let old_galaxies = &galaxies;
-        let mut galaxies = Vec::new();
-        let mut y_offset = 0;
-        for y in 0..self.height {
-            let row = old_galaxies
-                .iter()
-                .filter(|pos| pos.y() == y)
-                .copied()
-                .collect::<Vec<_>>();
-            if row.is_empty() {
-                y_offset += 1;
-            } else {
-                for mut galaxy in row {
-                    *galaxy.y_mut() += y_offset;
-                    galaxies.push(galaxy);
-                }
-            }
-        }
-        let width = self.width + x_offset;
-        let height = self.height + y_offset;
-        Self {
-            width,
-            height,
-            galaxies,
-        }
+        total_distance
     }
 }
 
 #[aoc(day11, part1)]
-fn part1(input: &Image) -> i32 {
-    let image = input.expand();
-    let mut total_distance = 0;
-    for (i, &left) in image.galaxies.iter().enumerate() {
-        for &right in image.galaxies.iter().skip(i + 1) {
-            let distance = (left - right).manhattan_distance();
-            total_distance += distance;
-        }
-    }
-    total_distance
+fn part1(input: &Image) -> i64 {
+    input.clone().expand(1).total_distance()
 }
 
 #[aoc(day11, part2)]
-fn part2(input: &Image) -> i32 {
-    todo!()
+fn part2(input: &Image) -> i64 {
+    input.clone().expand(1_000_000).total_distance()
 }
 
 #[cfg(test)]
@@ -120,7 +102,14 @@ mod tests {
     }
 
     #[test]
-    fn part2_example() {
-        assert_eq!(part2(&parse(INPUT)), 0);
+    fn part2_example1() {
+        let input = parse(INPUT);
+        assert_eq!(input.expand(10).total_distance(), 1030);
+    }
+
+    #[test]
+    fn part2_example2() {
+        let input = parse(INPUT);
+        assert_eq!(input.expand(100).total_distance(), 8410);
     }
 }
