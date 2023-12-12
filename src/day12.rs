@@ -116,7 +116,22 @@ fn part1(input: &[Record]) -> usize {
 
 #[aoc(day12, part2)]
 fn part2(input: &[Record]) -> usize {
-    todo!()
+    let new_input = input
+        .iter()
+        .map(|record| {
+            let mut springs = vec![];
+            let mut groups = vec![];
+            for i in 0..5 {
+                if i != 0 {
+                    springs.push(Spring::Unknown);
+                }
+                springs.extend(record.springs.clone());
+                groups.extend(record.groups.clone());
+            }
+            Record { springs, groups }
+        })
+        .collect::<Vec<_>>();
+    part1(&new_input)
 }
 
 #[cfg(test)]
@@ -137,6 +152,6 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse(INPUT)), 0);
+        assert_eq!(part2(&parse(INPUT)), 525152);
     }
 }
