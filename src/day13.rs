@@ -31,10 +31,8 @@ fn parse(input: &str) -> Vec<Pattern> {
 
 impl Pattern {
     fn is_vertical_mirror(&self, mirror: usize) -> bool {
-        let max_offset = mirror
-            .saturating_sub(1)
-            .min(self.width.saturating_sub(mirror + 1));
-        for dx in 0..=max_offset {
+        let max_offset = mirror.min(self.width.saturating_sub(mirror));
+        for dx in 0..max_offset {
             for y in 0..self.height {
                 if self.cells[y][mirror - dx - 1] != self.cells[y][mirror + dx] {
                     return false;
@@ -45,10 +43,8 @@ impl Pattern {
     }
 
     fn is_horizontal_mirror(&self, mirror: usize) -> bool {
-        let max_offset = mirror
-            .saturating_sub(1)
-            .min(self.height.saturating_sub(mirror + 1));
-        for dy in 0..=max_offset {
+        let max_offset = mirror.min(self.height.saturating_sub(mirror));
+        for dy in 0..max_offset {
             if self.cells[mirror - dy - 1] != self.cells[mirror + dy] {
                 return false;
             }
