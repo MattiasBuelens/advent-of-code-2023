@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Pattern {
     width: usize,
     height: usize,
@@ -52,12 +52,28 @@ impl Pattern {
         true
     }
 
-    fn find_vertical_mirror(&self) -> Option<usize> {
-        (1..self.width).find(|&mirror| self.is_vertical_mirror(mirror))
+    fn solve(&self, prev_solution: Option<usize>) -> Option<usize> {
+        for mirror in 1..self.width {
+            if self.is_vertical_mirror(mirror) && prev_solution != Some(mirror) {
+                return Some(mirror);
+            }
+        }
+        for mirror in 1..self.height {
+            if self.is_horizontal_mirror(mirror) && prev_solution != Some(mirror * 100) {
+                return Some(mirror * 100);
+            }
+        }
+        None
     }
 
-    fn find_horizontal_mirror(&self) -> Option<usize> {
-        (1..self.height).find(|&mirror| self.is_horizontal_mirror(mirror))
+    fn flip(mut self, index: usize) -> Self {
+        let cell = &mut self.cells[index / self.width][index % self.width];
+        *cell = match *cell {
+            '.' => '#',
+            '#' => '.',
+            _ => panic!("invalid cell"),
+        };
+        self
     }
 }
 
@@ -67,20 +83,31 @@ fn part1(input: &[Pattern]) -> usize {
         .iter()
         .enumerate()
         .map(|(i, pattern)| {
-            if let Some(mirror) = pattern.find_vertical_mirror() {
-                mirror
-            } else if let Some(mirror) = pattern.find_horizontal_mirror() {
-                mirror * 100
-            } else {
+            pattern.solve(None).unwrap_or_else(|| {
                 panic!("no mirror found in pattern #{i}");
-            }
+            })
         })
         .sum()
 }
 
 #[aoc(day13, part2)]
-fn part2(input: &[Pattern]) -> u32 {
-    todo!()
+fn part2(input: &[Pattern]) -> usize {
+    input
+        .iter()
+        .enumerate()
+        .map(|(i, pattern)| {
+            let prev_solution = pattern.solve(None).unwrap_or_else(|| {
+                panic!("no mirror found in pattern #{i}");
+            });
+            for index in 0..(pattern.width * pattern.height) {
+                let pattern = pattern.clone().flip(index);
+                if let Some(new_solution) = pattern.solve(Some(prev_solution)) {
+                    return new_solution;
+                }
+            }
+            panic!("no smudge found in pattern #{i}");
+        })
+        .sum()
 }
 
 #[cfg(test)]
@@ -110,6 +137,6 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse(INPUT)), 0);
+        assert_eq!(part2(&parse(INPUT)), 400);
     }
 }
