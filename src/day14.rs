@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
@@ -9,7 +9,7 @@ use crate::util::Vector2D;
 struct Platform {
     width: i32,
     height: i32,
-    cubes: Vec<Vector2D>,
+    cubes: HashSet<Vector2D>,
     rounds: Vec<Vector2D>,
 }
 
@@ -17,14 +17,14 @@ struct Platform {
 fn parse(input: &str) -> Platform {
     let width = input.lines().count() as i32;
     let height = input.lines().next().unwrap().len() as i32;
-    let mut cubes = Vec::new();
+    let mut cubes = HashSet::new();
     let mut rounds = Vec::new();
     for (y, line) in input.lines().enumerate() {
         for (x, c) in line.chars().enumerate() {
             match c {
                 '.' => {}
                 '#' => {
-                    cubes.push(Vector2D::new(x as i32, y as i32));
+                    cubes.insert(Vector2D::new(x as i32, y as i32));
                 }
                 'O' => {
                     rounds.push(Vector2D::new(x as i32, y as i32));
