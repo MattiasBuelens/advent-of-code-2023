@@ -26,6 +26,8 @@ type Pipes = HashMap<Vector2D, Pipe>;
 
 #[derive(Debug, Clone)]
 struct Input {
+    width: i32,
+    height: i32,
     pipes: Pipes,
     start: Vector2D,
 }
@@ -118,6 +120,8 @@ impl Direction {
 
 #[aoc_generator(day10)]
 fn parse(input: &str) -> Input {
+    let height = input.lines().count() as i32;
+    let width = input.lines().next().unwrap().len() as i32;
     let mut pipes = Pipes::new();
     let mut start: Option<Vector2D> = None;
     for (y, line) in input.lines().enumerate() {
@@ -149,7 +153,12 @@ fn parse(input: &str) -> Input {
     let start_pipe = Pipe::from_neighbours(start_directions.try_into().unwrap());
     pipes.insert(start, start_pipe);
 
-    Input { pipes, start }
+    Input {
+        width,
+        height,
+        pipes,
+        start,
+    }
 }
 
 #[derive(Debug)]
@@ -217,6 +226,59 @@ fn find_main_loop(input: &Input) -> HashSet<Vector2D> {
     main_loop
 }
 
+#[aoc(day10, part2)]
+fn part2(input: &Input) -> u32 {
+    let main_loop = find_main_loop(input);
+    let mut in_loop = HashSet::<Vector2D>::new();
+    for y in 0..input.height {
+        // Sweep from left to right.
+        let mut inside = false;
+        let mut previous_bend = None;
+        for x in 0..input.width {
+            let pos = Vector2D::new(x, y);
+            // If we cross the main loop...
+            if main_loop.contains(&pos) {
+                match *input.pipes.get(&pos).unwrap() {
+                    Pipe::Vert => {
+                        // We crossed the main loop.
+                        assert!(previous_bend.is_none());
+                        inside = !inside;
+                    }
+                    bend @ (Pipe::F | Pipe::L) => {
+                        // We start following along the main loop.
+                        assert!(previous_bend.is_none());
+                        previous_bend = Some(bend);
+                    }
+                    Pipe::Hori => {
+                        // We're still following along the main loop.
+                        assert!(previous_bend.is_some());
+                    }
+                    bend @ (Pipe::Seven | Pipe::J) => {
+                        // We stop following the main loop.
+                        let previous_bend = previous_bend.take().expect("mismatched bend");
+                        inside = match (previous_bend, bend) {
+                            (Pipe::F, Pipe::Seven) | (Pipe::L, Pipe::J) => {
+                                // We followed without crossing.
+                                inside
+                            }
+                            (Pipe::F, Pipe::J) | (Pipe::L, Pipe::Seven) => {
+                                // We crossed the main loop.
+                                !inside
+                            }
+                            _ => panic!("illegal bend from {previous_bend:?} to {bend:?}"),
+                        };
+                    }
+                }
+            } else if inside {
+                in_loop.insert(pos);
+            }
+        }
+        // At the end of the line, we should be outside of the main loop again.
+        assert!(!inside);
+    }
+    in_loop.len() as u32
+}
+
 impl Direction {
     fn rotate_left(self) -> Self {
         match self {
@@ -228,8 +290,8 @@ impl Direction {
     }
 }
 
-#[aoc(day10, part2)]
-fn part2(input: &Input) -> u32 {
+#[allow(unused)]
+fn part2_original(input: &Input) -> u32 {
     let main_loop = find_main_loop(input);
     let mut in_loop = HashSet::<Vector2D>::new();
     // Start in the top-left corner of the loop.
