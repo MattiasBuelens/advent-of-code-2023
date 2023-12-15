@@ -22,7 +22,7 @@ impl From<char> for Spring {
             '?' => Spring::Unknown,
             '.' => Spring::Operational,
             '#' => Spring::Damaged,
-            c => panic!("invalid spring {c}"),
+            _ => panic!("invalid spring {c}"),
         }
     }
 }
