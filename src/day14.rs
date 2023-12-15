@@ -5,7 +5,7 @@ use aoc_runner_derive::{aoc, aoc_generator};
 
 use crate::util::Vector2D;
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 struct Platform {
     width: i32,
     height: i32,
@@ -152,18 +152,22 @@ fn part2(input: &Platform) -> i32 {
     let mut platform = input.clone();
     let mut seen = HashMap::new();
     let mut count = 0u64;
-    while !seen.contains_key(&platform) {
-        seen.insert(platform.clone(), count);
+    while !seen.contains_key(&platform.rounds) {
+        seen.insert(platform.rounds.clone(), count);
         platform.spin_cycle();
         count += 1;
     }
-    let loop_start = *seen.get(&platform).expect("no loop found");
+    let loop_start = *seen.get(&platform.rounds).expect("no loop found");
     let loop_length = count - loop_start;
     let target_count = loop_start + ((target - loop_start) % loop_length);
-    let (target_platform, _) = seen
+    let (target_rounds, _) = seen
         .iter()
         .find(|(_platform, count)| **count == target_count)
         .unwrap_or_else(|| panic!("no platform found at step {target_count}"));
+    let target_platform = Platform {
+        rounds: target_rounds.clone(),
+        ..platform
+    };
     target_platform.total_load_north()
 }
 
