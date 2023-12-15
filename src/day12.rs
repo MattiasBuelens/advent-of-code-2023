@@ -1,8 +1,9 @@
+use std::collections::HashMap;
 use std::str::FromStr;
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 enum Spring {
     Unknown,
     Operational,
@@ -64,7 +65,11 @@ fn match_group(springs: &[Spring], group: usize) -> Option<&[Spring]> {
     }
 }
 
-fn solve(springs: &[Spring], groups: &[usize]) -> usize {
+fn solve<'a>(
+    springs: &'a [Spring],
+    groups: &'a [usize],
+    cache: &mut HashMap<(&'a [Spring], &'a [usize]), usize>,
+) -> usize {
     if springs.is_empty() {
         return if groups.is_empty() {
             1
@@ -81,6 +86,9 @@ fn solve(springs: &[Spring], groups: &[usize]) -> usize {
             1
         };
     }
+    if let Some(&matches) = cache.get(&(springs, groups)) {
+        return matches;
+    }
     // Try to match the next group
     let (&first_group, remaining_groups) = groups.split_first().unwrap();
     let mut matches = 0;
@@ -90,19 +98,20 @@ fn solve(springs: &[Spring], groups: &[usize]) -> usize {
             Spring::Damaged => {
                 // A damaged spring *must* match in the next group.
                 if let Some(remaining_springs) = match_group(&springs[index..], first_group) {
-                    matches += solve(remaining_springs, remaining_groups);
+                    matches += solve(remaining_springs, remaining_groups, cache);
                 }
-                return matches;
+                break;
             }
             Spring::Unknown => {
                 // An unknown spring may be damaged (matching the next group),
                 // or may be operational (not yet matching).
                 if let Some(remaining_springs) = match_group(&springs[index..], first_group) {
-                    matches += solve(remaining_springs, remaining_groups);
+                    matches += solve(remaining_springs, remaining_groups, cache);
                 }
             }
         }
     }
+    cache.insert((springs, groups), matches);
     matches
 }
 
@@ -110,7 +119,7 @@ fn solve(springs: &[Spring], groups: &[usize]) -> usize {
 fn part1(input: &[Record]) -> usize {
     input
         .iter()
-        .map(|record| solve(&record.springs, &record.groups))
+        .map(|record| solve(&record.springs, &record.groups, &mut HashMap::new()))
         .sum()
 }
 
