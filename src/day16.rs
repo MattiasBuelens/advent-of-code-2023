@@ -135,11 +135,10 @@ impl Contraption {
     }
 }
 
-#[aoc(day16, part1)]
-fn part1(input: &Contraption) -> usize {
+fn solve(input: &Contraption, start_beam: Beam) -> usize {
     let mut beams = Beams::new();
     let mut queue = VecDeque::new();
-    queue.push_back(Beam::new(Vector2D::new(-1, 0), Direction::E));
+    queue.push_back(start_beam);
     while let Some(beam) = queue.pop_front() {
         for new_beam in input.step(beam) {
             if !input.is_in_bounds(&new_beam.pos) {
@@ -154,9 +153,28 @@ fn part1(input: &Contraption) -> usize {
     beams.len()
 }
 
+#[aoc(day16, part1)]
+fn part1(input: &Contraption) -> usize {
+    let start_beam = Beam::new(Vector2D::new(-1, 0), Direction::E);
+    solve(input, start_beam)
+}
+
 #[aoc(day16, part2)]
 fn part2(input: &Contraption) -> usize {
-    todo!()
+    let mut max_energized = 0;
+    for x in 0..input.width {
+        let from_top = Beam::new(Vector2D::new(x, -1), Direction::S);
+        let from_bottom = Beam::new(Vector2D::new(x, input.height), Direction::N);
+        max_energized = max_energized.max(solve(input, from_top));
+        max_energized = max_energized.max(solve(input, from_bottom));
+    }
+    for y in 0..input.height {
+        let from_left = Beam::new(Vector2D::new(-1, y), Direction::E);
+        let from_right = Beam::new(Vector2D::new(input.width, y), Direction::W);
+        max_energized = max_energized.max(solve(input, from_left));
+        max_energized = max_energized.max(solve(input, from_right));
+    }
+    max_energized
 }
 
 #[cfg(test)]
@@ -181,6 +199,6 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse(INPUT)), 0);
+        assert_eq!(part2(&parse(INPUT)), 51);
     }
 }
