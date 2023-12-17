@@ -68,30 +68,43 @@ struct State {
 }
 
 impl State {
-    fn successors(&self, map: &Map) -> Vec<(State, u32)> {
-        Direction::all().into_iter().filter_map(|dir| {
-            let pos = self.pos + dir.step();
-            let cost = *map.blocks.get(&pos)?;
-            // Cannot go backwards (but ignore at start)
-            if self.straight > 0 && dir == self.dir.opposite() {
-                return None;
-            }
-            let straight = if dir == self.dir {
-                // Must turn after 3 straight steps
-                if self.straight >= 3 {
+    fn successors(&self, map: &Map, part2: bool) -> Vec<(State, u32)> {
+        Direction::all()
+            .into_iter()
+            .filter_map(|dir| {
+                let pos = self.pos + dir.step();
+                let cost = *map.blocks.get(&pos)?;
+                // Cannot go backwards (but ignore at start)
+                if self.straight != 0 && dir == self.dir.opposite() {
                     return None;
                 }
-                self.straight + 1
-            } else {
-                1
-            };
-            Some((State { pos, dir, straight }, cost))
-        }).collect::<Vec<_>>()
+                if part2 {
+                    // Must NOT turn until at least 4 straight steps (but ignore at start)
+                    if dir != self.dir && self.straight < 4 && self.straight != 0 {
+                        return None;
+                    }
+                    // Must turn after 10 straight steps
+                    if dir == self.dir && self.straight >= 10 {
+                        return None;
+                    }
+                } else {
+                    // Must turn after 3 straight steps
+                    if dir == self.dir && self.straight >= 3 {
+                        return None;
+                    }
+                }
+                let straight = if dir == self.dir {
+                    self.straight + 1
+                } else {
+                    1
+                };
+                Some((State { pos, dir, straight }, cost))
+            })
+            .collect::<Vec<_>>()
     }
 }
 
-#[aoc(day17, part1)]
-fn part1(map: &Map) -> u32 {
+fn solve(map: &Map, part2: bool) -> u32 {
     let start = State {
         pos: Vector2D::new(0, 0),
         dir: Direction::N,
@@ -100,16 +113,27 @@ fn part1(map: &Map) -> u32 {
     let goal = Vector2D::new(map.width - 1, map.height - 1);
     let (_path, cost) = dijkstra(
         &start,
-        |state| state.successors(&map),
-        |state| state.pos == goal,
+        |state| state.successors(&map, part2),
+        |state| {
+            // Cannot stop at end unless at least 4 straight steps
+            if part2 && state.straight < 4 {
+                return false;
+            }
+            state.pos == goal
+        },
     )
     .unwrap();
     cost
 }
 
+#[aoc(day17, part1)]
+fn part1(map: &Map) -> u32 {
+    solve(map, false)
+}
+
 #[aoc(day17, part2)]
 fn part2(map: &Map) -> u32 {
-    todo!()
+    solve(map, true)
 }
 
 #[cfg(test)]
@@ -135,8 +159,19 @@ mod tests {
         assert_eq!(part1(&parse(INPUT)), 102);
     }
 
+    const INPUT2: &str = "111111111111
+999999999991
+999999999991
+999999999991
+999999999991";
+
     #[test]
-    fn part2_example() {
-        assert_eq!(part2(&parse(INPUT)), 0);
+    fn part2_example1() {
+        assert_eq!(part2(&parse(INPUT)), 94);
+    }
+
+    #[test]
+    fn part2_example2() {
+        assert_eq!(part2(&parse(INPUT2)), 71);
     }
 }
