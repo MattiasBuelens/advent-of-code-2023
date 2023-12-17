@@ -113,7 +113,7 @@ fn solve(map: &Map, part2: bool) -> u32 {
     let goal = Vector2D::new(map.width - 1, map.height - 1);
     let (_path, cost) = dijkstra(
         &start,
-        |state| state.successors(&map, part2),
+        |state| state.successors(map, part2),
         |state| {
             // Cannot stop at end unless at least 4 straight steps
             if part2 && state.straight < 4 {
