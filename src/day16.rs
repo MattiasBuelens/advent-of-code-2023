@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
-use crate::util::Vector2D;
+use crate::util::{Direction, Vector2D};
 
 enum Piece {
     MirrorUpRight,
@@ -44,24 +44,7 @@ fn parse(input: &str) -> Contraption {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-enum Direction {
-    N,
-    S,
-    W,
-    E,
-}
-
 impl Direction {
-    fn step(self) -> Vector2D {
-        match self {
-            Direction::N => Vector2D::new(0, -1),
-            Direction::S => Vector2D::new(0, 1),
-            Direction::W => Vector2D::new(-1, 0),
-            Direction::E => Vector2D::new(1, 0),
-        }
-    }
-
     fn mirror_upright(self) -> Direction {
         match self {
             Direction::N => Direction::E,

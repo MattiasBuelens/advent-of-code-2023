@@ -2,15 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
-use crate::util::Vector2D;
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-enum Direction {
-    N,
-    S,
-    W,
-    E,
-}
+use crate::util::{Direction, Vector2D};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum Pipe {
@@ -91,30 +83,6 @@ impl Pipe {
         } else {
             panic!("invalid neighbour: {direction:?}");
         }
-    }
-}
-
-impl Direction {
-    fn step(self) -> Vector2D {
-        match self {
-            Direction::N => Vector2D::new(0, -1),
-            Direction::S => Vector2D::new(0, 1),
-            Direction::W => Vector2D::new(-1, 0),
-            Direction::E => Vector2D::new(1, 0),
-        }
-    }
-
-    fn opposite(self) -> Direction {
-        match self {
-            Direction::N => Direction::S,
-            Direction::S => Direction::N,
-            Direction::W => Direction::E,
-            Direction::E => Direction::W,
-        }
-    }
-
-    fn all() -> [Direction; 4] {
-        [Direction::N, Direction::S, Direction::W, Direction::E]
     }
 }
 
