@@ -27,7 +27,7 @@ impl FromStr for Instruction {
         };
         let meters = meters.parse().unwrap();
         let color = color
-            .strip_prefix('(')
+            .strip_prefix("(#")
             .unwrap()
             .strip_suffix(')')
             .unwrap()
@@ -124,18 +124,31 @@ fn fill_trench(edge: &HashSet<Vector2D>) -> HashSet<Vector2D> {
             if inside {
                 trench.insert(pos);
             }
-            // if trench.contains(&pos) {
-            //     print!("#");
-            // } else {
-            //     print!(".");
-            // }
         }
     }
     trench
 }
 
+fn fix_instruction(instruction: &Instruction) -> Instruction {
+    let (meters_hex, dir_hex) = instruction.color.split_at(instruction.color.len() - 1);
+    let meters = i32::from_str_radix(meters_hex, 16).unwrap();
+    let dir = match u8::from_str_radix(dir_hex, 16).unwrap() {
+        0 => Direction::E,
+        1 => Direction::S,
+        2 => Direction::W,
+        3 => Direction::N,
+        dir => panic!("invalid hex direction: {dir:x}"),
+    };
+    Instruction {
+        dir,
+        meters,
+        color: instruction.color.clone(),
+    }
+}
+
 #[aoc(day18, part2)]
 fn part2(plan: &[Instruction]) -> usize {
+    let plan = plan.iter().map(fix_instruction).collect::<Vec<_>>();
     todo!()
 }
 
