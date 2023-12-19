@@ -1,9 +1,8 @@
-use std::collections::HashSet;
 use std::str::FromStr;
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
-use crate::util::{Direction, Vector2D};
+use crate::util::{array_windows, Direction, Vector2D};
 
 #[derive(Debug, Clone)]
 struct Instruction {
@@ -42,91 +41,37 @@ fn parse(input: &str) -> Vec<Instruction> {
 }
 
 #[aoc(day18, part1)]
-fn part1(plan: &[Instruction]) -> usize {
-    let mut edge = HashSet::<Vector2D>::new();
+fn part1(plan: &[Instruction]) -> u64 {
+    let mut edge = Vec::<Vector2D>::new();
     // Dig out the edge
     let mut pos = Vector2D::new(0, 0);
-    edge.insert(pos);
+    edge.push(pos);
     for instruction in plan {
-        for _ in 0..instruction.meters {
-            pos += instruction.dir.step();
-            edge.insert(pos);
-        }
+        pos += instruction.dir.step() * instruction.meters;
+        edge.push(pos);
     }
     // Dig out the interior
-    let trench = fill_trench(&edge);
-    trench.len()
+    trench_area(&edge)
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-enum FollowingState {
-    NotFollowing,
-    FollowingUp,
-    FollowingDown,
-}
-
-fn fill_trench(edge: &HashSet<Vector2D>) -> HashSet<Vector2D> {
-    let min_x = edge.iter().map(|pos| pos.x()).min().unwrap();
-    let max_x = edge.iter().map(|pos| pos.x()).max().unwrap();
-    let min_y = edge.iter().map(|pos| pos.y()).min().unwrap();
-    let max_y = edge.iter().map(|pos| pos.y()).max().unwrap();
-    let mut trench = edge.clone();
-    for y in min_y..=max_y {
-        let mut following = FollowingState::NotFollowing;
-        let mut inside = false;
-        for x in min_x..=max_x {
-            let pos = Vector2D::new(x, y);
-            let pos_up = pos + Vector2D::new(0, -1);
-            let pos_down = pos + Vector2D::new(0, 1);
-            if following == FollowingState::FollowingUp {
-                // Following an edge with a turn at the top
-                if !edge.contains(&pos) {
-                    // Stopped following the edge
-                    let prev_pos_up = pos + Vector2D::new(-1, -1);
-                    if edge.contains(&prev_pos_up) {
-                        // Turn at the same side, no crossing
-                    } else {
-                        // Turn on other side
-                        inside = !inside
-                    }
-                    following = FollowingState::NotFollowing;
-                }
-            } else if following == FollowingState::FollowingDown {
-                // Following an edge with a turn at the bottom
-                if !edge.contains(&pos) {
-                    // Stopped following the edge
-                    let prev_pos_down = pos + Vector2D::new(-1, 1);
-                    if edge.contains(&prev_pos_down) {
-                        // Turn at the same side, no crossing
-                    } else {
-                        // Turn on other side
-                        inside = !inside
-                    }
-                    following = FollowingState::NotFollowing;
-                }
-            } else if edge.contains(&pos) {
-                match (edge.contains(&pos_up), edge.contains(&pos_down)) {
-                    (true, true) => {
-                        // Crossed the edge
-                        inside = !inside;
-                    }
-                    (true, false) => {
-                        // Start following an edge, turn is at the top
-                        following = FollowingState::FollowingUp;
-                    }
-                    (false, true) => {
-                        // Start following an edge, turn is at the bottom
-                        following = FollowingState::FollowingDown;
-                    }
-                    (false, false) => panic!("invalid crossing at {pos:?}"),
-                };
-            }
-            if inside {
-                trench.insert(pos);
-            }
-        }
+fn trench_area(edge: &[Vector2D]) -> u64 {
+    // https://en.wikipedia.org/wiki/Shoelace_formula#Trapezoid_formula
+    assert_eq!(edge.first(), edge.last());
+    let mut area = 0i64;
+    let mut perimeter = 0i64;
+    for &[pos, next_pos] in array_windows(edge) {
+        area += (pos.y() + next_pos.y()) as i64 * (pos.x() - next_pos.x()) as i64;
+        perimeter += (next_pos - pos).manhattan_distance() as i64;
     }
-    trench
+    area = area.abs() / 2;
+    // https://en.wikipedia.org/wiki/Pick%27s_theorem
+    // A = I + B/2 - 1
+    // area = A and perimeter = B, but we actually need I + B
+    // I = A - B/2 + 1
+    // I + B = A + B/2 + 1
+    // https://www.reddit.com/r/adventofcode/comments/18lg2we/comment/kdxd7yg/?utm_source=share&utm_medium=web2x&context=3
+    area += perimeter / 2 + 1;
+    area.abs() as u64
 }
 
 fn fix_instruction(instruction: &Instruction) -> Instruction {
@@ -147,9 +92,9 @@ fn fix_instruction(instruction: &Instruction) -> Instruction {
 }
 
 #[aoc(day18, part2)]
-fn part2(plan: &[Instruction]) -> usize {
+fn part2(plan: &[Instruction]) -> u64 {
     let plan = plan.iter().map(fix_instruction).collect::<Vec<_>>();
-    todo!()
+    part1(&plan)
 }
 
 #[cfg(test)]
@@ -178,6 +123,6 @@ U 2 (#7a21e3)";
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse(INPUT)), 0);
+        assert_eq!(part2(&parse(INPUT)), 952_408_144_115);
     }
 }
