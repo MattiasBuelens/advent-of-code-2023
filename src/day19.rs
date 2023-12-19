@@ -184,9 +184,113 @@ fn part1(input: &Input) -> i64 {
         .sum()
 }
 
+#[derive(Debug, Clone)]
+struct PartRange {
+    ratings: [(i64, i64); 4],
+}
+
+impl PartRange {
+    fn all() -> Self {
+        Self {
+            ratings: [(1, 4000); 4],
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.ratings.iter().any(|(start, end)| start > end)
+    }
+
+    /// Split into two halves.
+    /// The left half contains everything up to (but not including) split_value.
+    /// The right half contains everything starting from (and including) split_value.
+    fn split(&self, split_id: RatingId, split_value: i64) -> [Self; 2] {
+        let mut left_ratings = self.ratings;
+        let mut right_ratings = self.ratings;
+        let (_, left_end) = &mut left_ratings[split_id as usize];
+        let (right_start, _) = &mut right_ratings[split_id as usize];
+        *left_end = (*left_end).min(split_value - 1);
+        *right_start = (*right_start).max(split_value);
+        [
+            Self {
+                ratings: left_ratings,
+            },
+            Self {
+                ratings: right_ratings,
+            },
+        ]
+    }
+
+    fn size(&self) -> i64 {
+        if self.is_empty() {
+            return 0;
+        }
+        self.ratings
+            .iter()
+            .map(|&(start, end)| end - start + 1)
+            .product()
+    }
+}
+
+fn process_range(
+    range: PartRange,
+    rules: &[Rule],
+    default: &Destination,
+    workflows: &HashMap<String, Workflow>,
+) -> Vec<PartRange> {
+    if range.is_empty() {
+        return vec![];
+    }
+    if let Some((rule, rules)) = rules.split_first() {
+        // Split into two halves: one that matches, and one that doesn't
+        let (matching, failing) = match rule.op {
+            Op::Greater => {
+                let [less_or_equal, greater] = range.split(rule.rating, rule.value + 1);
+                (greater, less_or_equal)
+            }
+            Op::Less => {
+                let [less, greater_or_equal] = range.split(rule.rating, rule.value);
+                (less, greater_or_equal)
+            }
+        };
+        // The matching part goes to the rule's destination
+        let matching_accepted = process_destination(matching, &rule.dest, workflows);
+        // The failing part goes to the next rule
+        let failing_accepted = process_range(failing, rules, default, workflows);
+        // Combine accepted ranges from both paths
+        let mut accepted = matching_accepted;
+        accepted.extend(failing_accepted);
+        accepted
+    } else {
+        // No more rules, follow default destination
+        process_destination(range, default, workflows)
+    }
+}
+
+fn process_destination(
+    range: PartRange,
+    dest: &Destination,
+    workflows: &HashMap<String, Workflow>,
+) -> Vec<PartRange> {
+    match dest {
+        Destination::Accept => vec![range],
+        Destination::Reject => vec![],
+        Destination::Workflow(name) => {
+            let workflow = workflows.get(name).unwrap();
+            process_range(range, &workflow.rules, &workflow.default, workflows)
+        }
+    }
+}
+
 #[aoc(day19, part2)]
 fn part2(input: &Input) -> i64 {
-    todo!()
+    let in_rule = input.workflows.get("in").unwrap();
+    let accepted = process_range(
+        PartRange::all(),
+        &in_rule.rules,
+        &in_rule.default,
+        &input.workflows,
+    );
+    accepted.iter().map(|range| range.size()).sum()
 }
 
 #[cfg(test)]
@@ -218,6 +322,6 @@ hdj{m>838:A,pv}
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse(INPUT)), 0);
+        assert_eq!(part2(&parse(INPUT)), 167_409_079_868_000);
     }
 }
