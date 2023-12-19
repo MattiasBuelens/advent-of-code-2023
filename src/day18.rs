@@ -71,7 +71,7 @@ fn trench_area(edge: &[Vector2D]) -> u64 {
     // I + B = A + B/2 + 1
     // https://www.reddit.com/r/adventofcode/comments/18lg2we/comment/kdxd7yg/?utm_source=share&utm_medium=web2x&context=3
     area += perimeter / 2 + 1;
-    area.abs() as u64
+    area.unsigned_abs()
 }
 
 fn fix_instruction(instruction: &Instruction) -> Instruction {
