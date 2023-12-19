@@ -16,9 +16,17 @@ enum Destination {
     Reject,
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+enum RatingId {
+    X = 0,
+    M = 1,
+    A = 2,
+    S = 3,
+}
+
 #[derive(Debug, Clone)]
 struct Rule {
-    rating: char,
+    rating: RatingId,
     op: Op,
     value: i64,
     dest: Destination,
@@ -32,13 +40,25 @@ struct Workflow {
 
 #[derive(Debug, Clone)]
 struct Part {
-    ratings: HashMap<char, i64>,
+    ratings: [i64; 4],
 }
 
 #[derive(Debug, Clone)]
 struct Input {
     workflows: HashMap<String, Workflow>,
     parts: Vec<Part>,
+}
+
+impl From<char> for RatingId {
+    fn from(value: char) -> Self {
+        match value {
+            'x' => RatingId::X,
+            'm' => RatingId::M,
+            'a' => RatingId::A,
+            's' => RatingId::S,
+            _ => panic!("invalid rating ID: {value}"),
+        }
+    }
 }
 
 impl FromStr for Destination {
@@ -60,7 +80,7 @@ impl FromStr for Rule {
         let (rating, s) = s.split_at(1);
         let (op, s) = s.split_at(1);
         let (value, dest) = s.split_once(':').unwrap();
-        let rating = rating.chars().next().unwrap();
+        let rating = rating.chars().next().unwrap().into();
         let op = match op {
             ">" => Op::Greater,
             "<" => Op::Less,
@@ -100,11 +120,13 @@ impl FromStr for Part {
             .map(|s| {
                 let (rating, value) = s.split_once('=').unwrap();
                 assert_eq!(rating.len(), 1);
-                let rating = rating.chars().next().unwrap();
+                let _rating: RatingId = rating.chars().next().unwrap().into();
                 let value = value.parse().unwrap();
-                (rating, value)
+                value
             })
-            .collect();
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
         Ok(Part { ratings })
     }
 }
@@ -126,7 +148,7 @@ fn parse(input: &str) -> Input {
 
 impl Rule {
     fn matches(&self, part: &Part) -> bool {
-        let rating = *part.ratings.get(&self.rating).unwrap();
+        let rating = part.ratings[self.rating as usize];
         match self.op {
             Op::Greater => rating > self.value,
             Op::Less => rating < self.value,
@@ -158,7 +180,7 @@ fn part1(input: &Input) -> i64 {
         .parts
         .iter()
         .filter(|part| process(part, &input.workflows))
-        .map(|part| part.ratings.values().sum::<i64>())
+        .map(|part| part.ratings.iter().sum::<i64>())
         .sum()
 }
 
