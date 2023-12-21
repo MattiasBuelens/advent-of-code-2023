@@ -66,9 +66,13 @@ fn part1(garden: &Garden) -> usize {
     count_reachable(garden, 64)
 }
 
+fn count_wrapping_reachable(garden: &Garden, steps: usize) -> usize {
+    todo!()
+}
+
 #[aoc(day21, part2)]
 fn part2(garden: &Garden) -> usize {
-    todo!()
+    count_wrapping_reachable(garden, 26_501_365)
 }
 
 #[cfg(test)]
@@ -94,6 +98,13 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse(INPUT)), 0);
+        let garden = parse(INPUT);
+        assert_eq!(count_wrapping_reachable(&garden, 6), 16);
+        assert_eq!(count_wrapping_reachable(&garden, 10), 50);
+        assert_eq!(count_wrapping_reachable(&garden, 50), 1594);
+        assert_eq!(count_wrapping_reachable(&garden, 100), 6536);
+        assert_eq!(count_wrapping_reachable(&garden, 500), 167004);
+        assert_eq!(count_wrapping_reachable(&garden, 1000), 668697);
+        assert_eq!(count_wrapping_reachable(&garden, 5000), 16733044);
     }
 }
