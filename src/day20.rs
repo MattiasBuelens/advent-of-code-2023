@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
@@ -104,51 +104,57 @@ struct Pulse {
     value: bool,
     sender: String,
     receiver: String,
+    time: usize,
 }
 
-#[derive(Debug, Clone, Default)]
-struct PulseCounts {
-    low: u64,
-    high: u64,
-}
-
-fn push_button(graph: &mut ModuleGraph, counts: &mut PulseCounts) {
-    let mut queue = VecDeque::<Pulse>::new();
+fn push_button(graph: &mut ModuleGraph) -> Vec<Pulse> {
+    let mut pulses = Vec::<Pulse>::new();
     // When you push the button, a single low pulse is sent directly to the broadcaster module.
-    queue.push_back(Pulse {
+    pulses.push(Pulse {
         value: false,
         sender: "button".to_string(),
         receiver: "broadcaster".to_string(),
+        time: 0,
     });
-    counts.low += 1;
-    while let Some(pulse) = queue.pop_front() {
+    let mut index = 0;
+    while index < pulses.len() {
+        let pulse = &pulses[index];
         if let Some(receiver) = graph.get_mut(&pulse.receiver) {
             if let Some(new_pulse) = receiver.receive(pulse.value, &pulse.sender) {
-                for output in &receiver.outputs {
-                    queue.push_back(Pulse {
+                let new_pulses = receiver
+                    .outputs
+                    .iter()
+                    .map(|output| Pulse {
                         value: new_pulse,
                         sender: receiver.name.clone(),
                         receiver: output.clone(),
-                    });
-                    if new_pulse {
-                        counts.high += 1;
-                    } else {
-                        counts.low += 1;
-                    }
-                }
+                        time: pulse.time + 1,
+                    })
+                    .collect::<Vec<_>>();
+                pulses.extend(new_pulses);
             }
         }
+        index += 1;
     }
+    pulses
 }
 
 #[aoc(day20, part1)]
 fn part1(graph: &ModuleGraph) -> u64 {
     let mut graph = graph.clone();
-    let mut counts = PulseCounts::default();
+    let mut low_pulses = 0;
+    let mut high_pulses = 0;
     for _ in 0..1000 {
-        push_button(&mut graph, &mut counts);
+        let pulses = push_button(&mut graph);
+        for pulse in pulses {
+            if pulse.value {
+                high_pulses += 1;
+            } else {
+                low_pulses += 1
+            }
+        }
     }
-    counts.low * counts.high
+    low_pulses * high_pulses
 }
 
 #[aoc(day20, part2)]
