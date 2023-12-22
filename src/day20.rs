@@ -105,13 +105,6 @@ impl Module {
     fn is_inverter(&self) -> bool {
         matches!(&self.kind, ModuleKind::Conjunction(state) if state.len() == 1)
     }
-
-    fn conjunction_state(&self) -> &[bool] {
-        match &self.kind {
-            ModuleKind::Conjunction(state) => state,
-            _ => panic!("not a conjunction"),
-        }
-    }
 }
 
 #[derive(Debug)]
