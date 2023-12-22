@@ -30,40 +30,39 @@ impl<const N: usize> Vector<N> {
     }
 
     #[inline]
-    pub fn map_in_place(&mut self, mut f: impl FnMut(&i32) -> i32) {
-        self.for_each(|x| *x = f(x))
+    pub fn map_in_place(&mut self, mut f: impl FnMut(i32) -> i32) {
+        self.for_each(|x| *x = f(*x))
     }
 
     #[inline]
-    pub fn map(&self, f: impl FnMut(&i32) -> i32) -> Self {
-        Self::from_iter(self.coords.iter().map(f))
+    pub fn map(&self, f: impl FnMut(i32) -> i32) -> Self {
+        Self {
+            coords: self.coords.map(f),
+        }
     }
 
     #[inline]
-    pub fn zip_in_place(&mut self, other: &Vector<N>, mut f: impl FnMut(&mut i32, &i32)) {
-        self.coords
-            .iter_mut()
-            .zip(other.coords.iter())
-            .for_each(|(x, y)| f(x, y))
+    pub fn zip_in_place(&mut self, other: &Vector<N>, mut f: impl FnMut(&mut i32, i32)) {
+        for i in 0..N {
+            f(&mut self.coords[i], other.coords[i]);
+        }
     }
 
     #[inline]
-    pub fn zip_with(&self, other: &Vector<N>, mut f: impl FnMut(&i32, &i32) -> i32) -> Self {
-        Self::from_iter(
-            self.coords
-                .iter()
-                .zip(other.coords.iter())
-                .map(|(x, y)| f(x, y)),
-        )
+    pub fn zip_with(&self, other: &Vector<N>, mut f: impl FnMut(i32, i32) -> i32) -> Self {
+        let mut result = self.clone();
+        for i in 0..N {
+            result.coords[i] = f(result.coords[i], other.coords[i]);
+        }
+        result
     }
 
     fn from_iter(iter: impl Iterator<Item = i32>) -> Self {
         let mut coords = [0i32; N];
-        coords
-            .iter_mut()
-            .zip(iter)
-            .for_each(|(dest, src)| *dest = src);
-        coords.into()
+        for (i, value) in iter.take(N).enumerate() {
+            coords[i] = value
+        }
+        Self { coords }
     }
 }
 
@@ -129,7 +128,7 @@ impl<const N: usize> Neg for Vector<N> {
     type Output = Self;
 
     fn neg(self) -> Self {
-        self.map(|&x| -x)
+        self.map(|x| -x)
     }
 }
 
