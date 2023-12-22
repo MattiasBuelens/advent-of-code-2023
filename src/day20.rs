@@ -108,7 +108,7 @@ impl Module {
 
     fn conjunction_state(&self) -> &[bool] {
         match &self.kind {
-            ModuleKind::Conjunction(state) => &state,
+            ModuleKind::Conjunction(state) => state,
             _ => panic!("not a conjunction"),
         }
     }
@@ -241,7 +241,7 @@ fn part2(graph: &ModuleGraph) -> usize {
     // Figure out how often these inputs send a high pulse.
     let cycles = cl_inputs
         .iter()
-        .map(|cl_input| find_cycle(&graph, cl_input))
+        .map(|cl_input| find_cycle(graph, cl_input))
         .collect::<Vec<_>>();
     // Assert: all inputs have matching time period for their high pulse
     assert!(cycles
