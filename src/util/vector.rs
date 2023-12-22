@@ -57,7 +57,8 @@ impl<const N: usize> Vector<N> {
         result
     }
 
-    fn from_iter(iter: impl Iterator<Item = i32>) -> Self {
+    #[inline]
+    pub fn from_iter(iter: impl Iterator<Item = i32>) -> Self {
         let mut coords = [0i32; N];
         for (i, value) in iter.take(N).enumerate() {
             coords[i] = value
@@ -239,13 +240,28 @@ impl Vector3D {
     }
 
     #[inline]
+    pub fn x_mut(&mut self) -> &mut i32 {
+        &mut self.coords[0]
+    }
+
+    #[inline]
     pub fn y(&self) -> i32 {
         self.coords[1]
     }
 
     #[inline]
+    pub fn y_mut(&mut self) -> &mut i32 {
+        &mut self.coords[1]
+    }
+
+    #[inline]
     pub fn z(&self) -> i32 {
         self.coords[2]
+    }
+
+    #[inline]
+    pub fn z_mut(&mut self) -> &mut i32 {
+        &mut self.coords[2]
     }
 
     pub fn cross_product(self, other: Vector3D) -> Vector3D {
