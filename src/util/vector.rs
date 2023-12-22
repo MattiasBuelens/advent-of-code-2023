@@ -50,7 +50,7 @@ impl<const N: usize> Vector<N> {
 
     #[inline]
     pub fn zip_with(&self, other: &Vector<N>, mut f: impl FnMut(i32, i32) -> i32) -> Self {
-        let mut result = self.clone();
+        let mut result = *self;
         for i in 0..N {
             result.coords[i] = f(result.coords[i], other.coords[i]);
         }

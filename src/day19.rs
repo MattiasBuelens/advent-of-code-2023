@@ -121,7 +121,7 @@ impl FromStr for Part {
                 let (rating, value) = s.split_once('=').unwrap();
                 assert_eq!(rating.len(), 1);
                 let _rating: RatingId = rating.chars().next().unwrap().into();
-                
+
                 value.parse().unwrap()
             })
             .collect::<Vec<_>>()

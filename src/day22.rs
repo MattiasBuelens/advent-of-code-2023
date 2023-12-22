@@ -66,7 +66,7 @@ fn try_drop_brick(brick: &Brick, dropped_cubes: &HashSet<Vector3D>) -> Option<Br
     if next_brick
         .cubes()
         .iter()
-        .any(|cube| dropped_cubes.contains(&cube))
+        .any(|cube| dropped_cubes.contains(cube))
     {
         return None;
     }
