@@ -73,10 +73,9 @@ fn try_drop_brick(brick: &Brick, dropped_cubes: &HashSet<Vector3D>) -> Option<Br
     Some(next_brick)
 }
 
-#[aoc(day22, part1)]
-fn part1(input: &[Brick]) -> usize {
+fn drop_bricks(bricks: &[Brick]) -> (Vec<Brick>, HashSet<Vector3D>) {
     // Drop bricks, from lowest to highest
-    let mut sorted_bricks = input.to_vec();
+    let mut sorted_bricks = bricks.to_vec();
     sorted_bricks.sort_by_key(|brick| brick.start.z());
     let mut dropped_bricks = vec![];
     let mut dropped_cubes = HashSet::<Vector3D>::new();
@@ -87,6 +86,13 @@ fn part1(input: &[Brick]) -> usize {
         dropped_bricks.push(brick);
         dropped_cubes.extend(brick.cubes());
     }
+    dropped_bricks.sort_by_key(|brick| brick.start.z());
+    (dropped_bricks, dropped_cubes)
+}
+
+#[aoc(day22, part1)]
+fn part1(input: &[Brick]) -> usize {
+    let (dropped_bricks, dropped_cubes) = drop_bricks(input);
     // Check which bricks can be disintegrated
     let mut num_disintegrate = 0;
     for brick in &dropped_bricks {
@@ -119,7 +125,29 @@ fn part1(input: &[Brick]) -> usize {
 
 #[aoc(day22, part2)]
 fn part2(input: &[Brick]) -> usize {
-    todo!()
+    let (dropped_bricks, _) = drop_bricks(input);
+    // Check how many bricks would fall if we were to disintegrate every brick (separately)
+    let mut total_dropped = 0;
+    for &brick_to_disintegrate in &dropped_bricks {
+        // Let all other bricks drop again
+        let mut new_cubes = HashSet::new();
+        for &other_brick in &dropped_bricks {
+            if brick_to_disintegrate == other_brick {
+                continue;
+            }
+            let mut other_brick = other_brick;
+            let mut other_dropped = false;
+            while let Some(next_brick) = try_drop_brick(&other_brick, &new_cubes) {
+                other_brick = next_brick;
+                other_dropped = true;
+            }
+            new_cubes.extend(other_brick.cubes());
+            if other_dropped {
+                total_dropped += 1;
+            }
+        }
+    }
+    total_dropped
 }
 
 #[cfg(test)]
@@ -141,6 +169,6 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse(INPUT)), 0);
+        assert_eq!(part2(&parse(INPUT)), 7);
     }
 }
