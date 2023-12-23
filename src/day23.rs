@@ -45,7 +45,7 @@ struct State {
     seen: BTreeSet<Vector2D>,
 }
 
-fn successors(state: &State, map: &Map) -> Vec<State> {
+fn successors(state: &State, map: &Map, part2: bool) -> Vec<State> {
     Direction::all()
         .iter()
         .filter_map(|dir| {
@@ -53,7 +53,8 @@ fn successors(state: &State, map: &Map) -> Vec<State> {
             let next_tile = map.get(&next_pos)?;
             let (next_pos, cost) = match next_tile {
                 Tile::Path => (next_pos, 1),
-                Tile::Slope(slope_dir) if slope_dir == dir => {
+                Tile::Slope(_) if part2 => (next_pos, 1),
+                Tile::Slope(slope_dir) if slope_dir == dir && !part2 => {
                     // Slide down the slope
                     (next_pos + dir.step(), 2)
                 }
@@ -73,8 +74,7 @@ fn successors(state: &State, map: &Map) -> Vec<State> {
         .collect()
 }
 
-#[aoc(day23, part1)]
-fn part1(map: &Map) -> u64 {
+fn solve(map: &Map, part2: bool) -> u64 {
     let max_y = map.keys().map(|pos| pos.y()).max().unwrap();
     let (&start, _) = map
         .iter()
@@ -89,16 +89,21 @@ fn part1(map: &Map) -> u64 {
         cost: 0,
         seen: BTreeSet::from([start]),
     };
-    let longest = bfs_reach(start_state, |state| successors(state, map))
+    let longest = bfs_reach(start_state, |state| successors(state, map, part2))
         .filter(|state| state.pos == goal)
         .max_by_key(|state| state.cost)
         .unwrap();
     longest.cost
 }
 
+#[aoc(day23, part1)]
+fn part1(map: &Map) -> u64 {
+    solve(map, false)
+}
+
 #[aoc(day23, part2)]
 fn part2(map: &Map) -> u64 {
-    todo!()
+    solve(map, true)
 }
 
 #[cfg(test)]
@@ -136,6 +141,6 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse(INPUT)), 0);
+        assert_eq!(part2(&parse(INPUT)), 154);
     }
 }
