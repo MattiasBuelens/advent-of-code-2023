@@ -1,16 +1,54 @@
 use std::fmt::{Debug, Display, Formatter};
+use std::iter::Sum;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
+use num_traits::{Num, Zero};
+
+pub trait Int:
+    Num
+    + Neg<Output = Self>
+    + AddAssign
+    + SubAssign
+    + MulAssign
+    + DivAssign
+    + Sum<Self>
+    + Copy
+    + Display
+    + Debug
+{
+    fn abs(self) -> Self;
+}
+
+impl Int for i32 {
+    fn abs(self) -> Self {
+        self.abs()
+    }
+}
+
+impl Int for i64 {
+    fn abs(self) -> Self {
+        self.abs()
+    }
+}
+
+impl Int for i128 {
+    fn abs(self) -> Self {
+        self.abs()
+    }
+}
+
 #[derive(Eq, PartialEq, Copy, Clone, Hash, Ord, PartialOrd)]
-pub struct Vector<const N: usize> {
-    pub coords: [i32; N],
+pub struct Vector<const N: usize, T: Int = i32> {
+    pub coords: [T; N],
 }
 
 #[allow(dead_code)]
-impl<const N: usize> Vector<N> {
+impl<const N: usize, T: Int> Vector<N, T> {
     #[inline]
-    pub const fn zero() -> Self {
-        Self { coords: [0i32; N] }
+    pub fn zero() -> Self {
+        Self {
+            coords: [T::zero(); N],
+        }
     }
 
     #[inline]
@@ -20,36 +58,36 @@ impl<const N: usize> Vector<N> {
     }
 
     #[inline]
-    pub fn manhattan_distance(&self) -> i32 {
+    pub fn manhattan_distance(&self) -> T {
         self.coords.iter().map(|x| x.abs()).sum()
     }
 
     #[inline]
-    pub fn for_each(&mut self, f: impl FnMut(&mut i32)) {
+    pub fn for_each(&mut self, f: impl FnMut(&mut T)) {
         self.coords.iter_mut().for_each(f);
     }
 
     #[inline]
-    pub fn map_in_place(&mut self, mut f: impl FnMut(i32) -> i32) {
+    pub fn map_in_place(&mut self, mut f: impl FnMut(T) -> T) {
         self.for_each(|x| *x = f(*x))
     }
 
     #[inline]
-    pub fn map(&self, f: impl FnMut(i32) -> i32) -> Self {
+    pub fn map(&self, f: impl FnMut(T) -> T) -> Self {
         Self {
             coords: self.coords.map(f),
         }
     }
 
     #[inline]
-    pub fn zip_in_place(&mut self, other: &Vector<N>, mut f: impl FnMut(&mut i32, i32)) {
+    pub fn zip_in_place(&mut self, other: &Self, mut f: impl FnMut(&mut T, T)) {
         for i in 0..N {
             f(&mut self.coords[i], other.coords[i]);
         }
     }
 
     #[inline]
-    pub fn zip_with(&self, other: &Vector<N>, mut f: impl FnMut(i32, i32) -> i32) -> Self {
+    pub fn zip_with(&self, other: &Self, mut f: impl FnMut(T, T) -> T) -> Self {
         let mut result = *self;
         for i in 0..N {
             result.coords[i] = f(result.coords[i], other.coords[i]);
@@ -58,8 +96,8 @@ impl<const N: usize> Vector<N> {
     }
 
     #[inline]
-    pub fn from_iter(iter: impl Iterator<Item = i32>) -> Self {
-        let mut coords = [0i32; N];
+    pub fn from_iter(iter: impl Iterator<Item = T>) -> Self {
+        let mut coords = [Zero::zero(); N];
         for (i, value) in iter.take(N).enumerate() {
             coords[i] = value
         }
@@ -67,13 +105,13 @@ impl<const N: usize> Vector<N> {
     }
 }
 
-impl<const N: usize> Default for Vector<N> {
+impl<const N: usize, T: Int> Default for Vector<N, T> {
     fn default() -> Self {
         Self::zero()
     }
 }
 
-impl<const N: usize> Display for Vector<N> {
+impl<const N: usize, T: Int> Display for Vector<N, T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "(")?;
         for (i, coord) in self.coords.iter().enumerate() {
@@ -87,7 +125,7 @@ impl<const N: usize> Display for Vector<N> {
     }
 }
 
-impl<const N: usize> Debug for Vector<N> {
+impl<const N: usize, T: Int> Debug for Vector<N, T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut f = f.debug_tuple(&format!("Vector<{}>", N));
         for coord in self.coords.iter() {
@@ -97,174 +135,174 @@ impl<const N: usize> Debug for Vector<N> {
     }
 }
 
-impl<const N: usize> From<[i32; N]> for Vector<N> {
-    fn from(coords: [i32; N]) -> Self {
+impl<const N: usize, T: Int> From<[T; N]> for Vector<N, T> {
+    fn from(coords: [T; N]) -> Self {
         Self { coords }
     }
 }
 
-impl<const N: usize> From<Vector<N>> for [i32; N] {
-    fn from(vector: Vector<N>) -> Self {
+impl<const N: usize, T: Int> From<Vector<N, T>> for [T; N] {
+    fn from(vector: Vector<N, T>) -> Self {
         vector.coords
     }
 }
 
-impl<const N: usize> Add for Vector<N> {
+impl<const N: usize, T: Int> Add for Vector<N, T> {
     type Output = Self;
 
-    fn add(self, other: Vector<N>) -> Self {
+    fn add(self, other: Self) -> Self {
         self.zip_with(&other, |x, y| x + y)
     }
 }
 
-impl<const N: usize> Sub for Vector<N> {
+impl<const N: usize, T: Int> Sub for Vector<N, T> {
     type Output = Self;
 
-    fn sub(self: Vector<N>, other: Vector<N>) -> Self {
+    fn sub(self: Self, other: Self) -> Self {
         self.zip_with(&other, |x, y| x - y)
     }
 }
 
-impl<const N: usize> Neg for Vector<N> {
+impl<const N: usize, T: Int> Neg for Vector<N, T> {
     type Output = Self;
 
     fn neg(self) -> Self {
-        self.map(|x| -x)
+        self.map(|x| x.neg())
     }
 }
 
-impl<const N: usize> AddAssign for Vector<N> {
+impl<const N: usize, T: Int> AddAssign for Vector<N, T> {
     fn add_assign(&mut self, other: Self) {
         self.zip_in_place(&other, |x, y| x.add_assign(y));
     }
 }
 
-impl<const N: usize> SubAssign for Vector<N> {
+impl<const N: usize, T: Int> SubAssign for Vector<N, T> {
     fn sub_assign(&mut self, other: Self) {
         self.zip_in_place(&other, |x, y| x.sub_assign(y));
     }
 }
 
-impl<const N: usize> Mul<i32> for Vector<N> {
+impl<const N: usize, T: Int> Mul<T> for Vector<N, T> {
     type Output = Self;
 
-    fn mul(self, rhs: i32) -> Self::Output {
+    fn mul(self, rhs: T) -> Self::Output {
         self.map(|x| x * rhs)
     }
 }
 
-impl<const N: usize> MulAssign<i32> for Vector<N> {
-    fn mul_assign(&mut self, rhs: i32) {
+impl<const N: usize, T: Int> MulAssign<T> for Vector<N, T> {
+    fn mul_assign(&mut self, rhs: T) {
         self.for_each(|x| x.mul_assign(rhs));
     }
 }
 
-impl<const N: usize> Div<i32> for Vector<N> {
+impl<const N: usize, T: Int> Div<T> for Vector<N, T> {
     type Output = Self;
 
-    fn div(self, rhs: i32) -> Self::Output {
+    fn div(self, rhs: T) -> Self::Output {
         self.map(|x| x / rhs)
     }
 }
 
-impl<const N: usize> DivAssign<i32> for Vector<N> {
-    fn div_assign(&mut self, rhs: i32) {
+impl<const N: usize, T: Int> DivAssign<T> for Vector<N, T> {
+    fn div_assign(&mut self, rhs: T) {
         self.for_each(|x| x.div_assign(rhs));
     }
 }
 
-pub type Vector2D = Vector<2>;
+pub type Vector2D<T = i32> = Vector<2, T>;
 
 #[allow(dead_code)]
-impl Vector2D {
-    pub const fn new(x: i32, y: i32) -> Self {
+impl<T: Int> Vector2D<T> {
+    pub const fn new(x: T, y: T) -> Self {
         Self { coords: [x, y] }
     }
 
     #[inline]
-    pub fn x(&self) -> i32 {
+    pub fn x(&self) -> T {
         self.coords[0]
     }
 
     #[inline]
-    pub fn x_mut(&mut self) -> &mut i32 {
+    pub fn x_mut(&mut self) -> &mut T {
         &mut self.coords[0]
     }
 
     #[inline]
-    pub fn y(&self) -> i32 {
+    pub fn y(&self) -> T {
         self.coords[1]
     }
 
     #[inline]
-    pub fn y_mut(&mut self) -> &mut i32 {
+    pub fn y_mut(&mut self) -> &mut T {
         &mut self.coords[1]
     }
 
     pub fn neighbours(self) -> impl Iterator<Item = Self> {
         [
-            self + Vector2D::new(0, -1),
-            self + Vector2D::new(-1, 0),
-            self + Vector2D::new(1, 0),
-            self + Vector2D::new(0, 1),
+            self + Vector2D::new(T::zero(), -T::one()),
+            self + Vector2D::new(-T::one(), T::zero()),
+            self + Vector2D::new(T::one(), T::zero()),
+            self + Vector2D::new(T::zero(), T::one()),
         ]
         .into_iter()
     }
 
     pub fn neighbours_diagonal(self) -> impl Iterator<Item = Self> {
         [
-            self + Vector2D::new(-1, -1),
-            self + Vector2D::new(0, -1),
-            self + Vector2D::new(1, -1),
-            self + Vector2D::new(-1, 0),
-            self + Vector2D::new(1, 0),
-            self + Vector2D::new(-1, 1),
-            self + Vector2D::new(0, 1),
-            self + Vector2D::new(1, 1),
+            self + Vector2D::new(-T::one(), -T::one()),
+            self + Vector2D::new(T::zero(), -T::one()),
+            self + Vector2D::new(T::one(), -T::one()),
+            self + Vector2D::new(-T::one(), T::zero()),
+            self + Vector2D::new(T::one(), T::zero()),
+            self + Vector2D::new(-T::one(), T::one()),
+            self + Vector2D::new(T::zero(), T::one()),
+            self + Vector2D::new(T::one(), T::one()),
         ]
         .into_iter()
     }
 }
 
-pub type Vector3D = Vector<3>;
+pub type Vector3D<T = i32> = Vector<3, T>;
 
 #[allow(dead_code)]
-impl Vector3D {
-    pub const fn new(x: i32, y: i32, z: i32) -> Self {
+impl<T: Int> Vector3D<T> {
+    pub const fn new(x: T, y: T, z: T) -> Self {
         Self { coords: [x, y, z] }
     }
 
     #[inline]
-    pub fn x(&self) -> i32 {
+    pub fn x(&self) -> T {
         self.coords[0]
     }
 
     #[inline]
-    pub fn x_mut(&mut self) -> &mut i32 {
+    pub fn x_mut(&mut self) -> &mut T {
         &mut self.coords[0]
     }
 
     #[inline]
-    pub fn y(&self) -> i32 {
+    pub fn y(&self) -> T {
         self.coords[1]
     }
 
     #[inline]
-    pub fn y_mut(&mut self) -> &mut i32 {
+    pub fn y_mut(&mut self) -> &mut T {
         &mut self.coords[1]
     }
 
     #[inline]
-    pub fn z(&self) -> i32 {
+    pub fn z(&self) -> T {
         self.coords[2]
     }
 
     #[inline]
-    pub fn z_mut(&mut self) -> &mut i32 {
+    pub fn z_mut(&mut self) -> &mut T {
         &mut self.coords[2]
     }
 
-    pub fn cross_product(self, other: Vector3D) -> Vector3D {
+    pub fn cross_product(self, other: Self) -> Self {
         // https://en.wikipedia.org/wiki/Cross_product
         Vector3D::new(
             self.y() * other.z() - self.z() * other.y(),
@@ -275,12 +313,12 @@ impl Vector3D {
 
     pub fn neighbours(self) -> impl Iterator<Item = Self> {
         [
-            self + Vector3D::new(-1, 0, 0),
-            self + Vector3D::new(1, 0, 0),
-            self + Vector3D::new(0, -1, 0),
-            self + Vector3D::new(0, 1, 0),
-            self + Vector3D::new(0, 0, -1),
-            self + Vector3D::new(0, 0, 1),
+            self + Vector3D::new(-T::one(), T::zero(), T::zero()),
+            self + Vector3D::new(T::one(), T::zero(), T::zero()),
+            self + Vector3D::new(T::zero(), -T::one(), T::zero()),
+            self + Vector3D::new(T::zero(), T::one(), T::zero()),
+            self + Vector3D::new(T::zero(), T::zero(), -T::one()),
+            self + Vector3D::new(T::zero(), T::zero(), T::one()),
         ]
         .into_iter()
     }
