@@ -1,5 +1,4 @@
 use std::fmt::{Debug, Display, Formatter};
-use std::iter::Sum;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use super::num::Num;
@@ -288,6 +287,10 @@ impl<T: Num> Vector3D<T> {
             self + Vector3D::new(T::zero(), T::zero(), T::one()),
         ]
         .into_iter()
+    }
+
+    pub fn into_2d(self) -> Vector2D<T> {
+        Vector2D::new(self.x(), self.y())
     }
 }
 
