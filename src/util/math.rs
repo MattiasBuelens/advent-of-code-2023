@@ -1,6 +1,8 @@
+use super::num::Num;
+
 #[allow(dead_code)]
-pub fn gcd(mut a: i32, mut b: i32) -> i32 {
-    while a != 0 {
+pub fn gcd<T: Num>(mut a: T, mut b: T) -> T {
+    while a != T::zero() {
         let old_a = a;
         a = b % a;
         b = old_a;
@@ -9,21 +11,6 @@ pub fn gcd(mut a: i32, mut b: i32) -> i32 {
 }
 
 #[allow(dead_code)]
-pub fn gcd_64(mut a: i64, mut b: i64) -> i64 {
-    while a != 0 {
-        let old_a = a;
-        a = b % a;
-        b = old_a;
-    }
-    b.abs()
-}
-
-#[allow(dead_code)]
-pub fn lcm(a: i32, b: i32) -> i32 {
+pub fn lcm<T: Num>(a: T, b: T) -> T {
     (a * b).abs() / gcd(a, b)
-}
-
-#[allow(dead_code)]
-pub fn lcm_64(a: i64, b: i64) -> i64 {
-    (a * b).abs() / gcd_64(a, b)
 }

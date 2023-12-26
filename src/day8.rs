@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use aoc_runner_derive::{aoc, aoc_generator};
 
-use crate::util::lcm_64;
+use crate::util::lcm;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum Direction {
@@ -75,7 +75,7 @@ fn part2(input: &Input) -> i64 {
         .keys()
         .filter(|label| label.ends_with('A'))
         .map(|start| solve(start, |label| label.ends_with('Z'), input))
-        .fold(1, lcm_64)
+        .fold(1, lcm)
 }
 
 #[cfg(test)]
