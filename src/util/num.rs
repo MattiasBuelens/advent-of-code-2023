@@ -34,3 +34,9 @@ impl Num for i128 {
         self.abs()
     }
 }
+
+impl Num for f64 {
+    fn abs(self) -> Self {
+        self.abs()
+    }
+}
