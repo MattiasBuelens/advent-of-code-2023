@@ -1,19 +1,9 @@
 use std::fmt::{Debug, Display};
 use std::iter::Sum;
-use std::ops::{AddAssign, DivAssign, MulAssign, Neg, SubAssign};
+use std::ops::Neg;
 
 pub trait Num:
-    num_traits::Num
-    + Neg<Output = Self>
-    + PartialOrd
-    + AddAssign
-    + SubAssign
-    + MulAssign
-    + DivAssign
-    + Sum<Self>
-    + Copy
-    + Display
-    + Debug
+    num_traits::NumAssign + Neg<Output = Self> + PartialOrd + Sum<Self> + Copy + Display + Debug
 {
     fn abs(self) -> Self;
 }
