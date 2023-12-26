@@ -1,6 +1,7 @@
 use aoc_runner_derive::{aoc, aoc_generator};
 
 type Vector3D = crate::util::Vector3D<i64>;
+type FloatVector2D = crate::util::Vector2D<f64>;
 
 #[derive(Debug, Copy, Clone)]
 struct Hailstone {
@@ -21,9 +22,57 @@ fn parse(input: &str) -> Vec<Hailstone> {
         .collect()
 }
 
+impl Hailstone {
+    fn intersect_2d(&self, other: &Self) -> Option<FloatVector2D> {
+        // m = vy / vx
+        let m1 = (self.vel.y() as f64) / (self.vel.x() as f64);
+        let m2 = (other.vel.y() as f64) / (other.vel.x() as f64);
+        if m1 == m2 {
+            // Parallel
+            return None;
+        }
+        // y = m * x + b => b = y - m * x
+        let b1 = (self.pos.y() as f64) - m1 * (self.pos.x() as f64);
+        let b2 = (other.pos.y() as f64) - m2 * (other.pos.x() as f64);
+        // m1 * x + b1 = m2 * x + b2
+        // (m1 - m2) * x = b2 - b1
+        // x = (b2 - b1) / (m1 - m2)
+        let intersect_x = (b2 - b1) / (m1 - m2);
+        let intersect_y = intersect_x * m1 + b1;
+        Some(FloatVector2D::new(intersect_x, intersect_y))
+    }
+
+    fn time_for(&self, pos: FloatVector2D) -> f64 {
+        // x = start_pos.x + vel.x * t
+        // t = (x - start_pos.x) / vel.x
+        (pos.x() - (self.pos.x()) as f64) / (self.vel.x() as f64)
+    }
+}
+
 fn count_intersections(hailstones: &[Hailstone], min: f64, max: f64) -> usize {
-    dbg!(hailstones);
-    todo!()
+    hailstones
+        .iter()
+        .enumerate()
+        .flat_map(move |(i, left)| {
+            hailstones
+                .iter()
+                .skip(i + 1)
+                .map(move |right| (left, right))
+        })
+        .filter_map(|(left, right)| {
+            let intersection = left.intersect_2d(right)?;
+            // Must be within target area
+            if (min..=max).contains(&intersection.x()) && (min..=max).contains(&intersection.y()) {
+                // Must not be in the past
+                let left_time = left.time_for(intersection);
+                let right_time = right.time_for(intersection);
+                if left_time > 0.0 && right_time > 0.0 {
+                    return Some(intersection);
+                }
+            }
+            None
+        })
+        .count()
 }
 
 #[aoc(day24, part1)]
