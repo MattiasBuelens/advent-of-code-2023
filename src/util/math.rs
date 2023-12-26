@@ -12,5 +12,5 @@ pub fn gcd<T: Num>(mut a: T, mut b: T) -> T {
 
 #[allow(dead_code)]
 pub fn lcm<T: Num>(a: T, b: T) -> T {
-    (a * b).abs() / gcd(a, b)
+    (a * b) / gcd(a, b)
 }

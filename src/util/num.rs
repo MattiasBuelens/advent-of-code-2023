@@ -5,6 +5,7 @@ use std::ops::{AddAssign, DivAssign, MulAssign, Neg, SubAssign};
 pub trait Num:
     num_traits::Num
     + Neg<Output = Self>
+    + PartialOrd
     + AddAssign
     + SubAssign
     + MulAssign
