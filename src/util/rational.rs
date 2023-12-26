@@ -1,5 +1,9 @@
 use std::cmp::Ordering;
-use std::ops::{Add, Div, Mul, Neg, Sub};
+use std::fmt::{Display, Formatter};
+use std::iter::Sum;
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, Sub, SubAssign};
+
+use num_traits::{One, Zero};
 
 use crate::util::{gcd, lcm};
 
@@ -42,11 +46,6 @@ impl<T: Num> Rational<T> {
         self.denominator
     }
 
-    #[inline]
-    pub fn into_decimal(self) -> f64 {
-        self.nominator.into_decimal() / self.denominator.into_decimal()
-    }
-
     fn same_denominators(left: Self, right: Self) -> (Self, Self) {
         let denominator = lcm(left.denominator, right.denominator);
         (
@@ -85,6 +84,12 @@ impl<T: Num> Add<T> for Rational<T> {
     }
 }
 
+impl<T: Num> AddAssign for Rational<T> {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = self.add(rhs)
+    }
+}
+
 impl<T: Num> Sub for Rational<T> {
     type Output = Self;
 
@@ -99,6 +104,12 @@ impl<T: Num> Sub<T> for Rational<T> {
 
     fn sub(self, rhs: T) -> Self::Output {
         self.sub(Rational::from(rhs))
+    }
+}
+
+impl<T: Num> SubAssign for Rational<T> {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = self.sub(rhs)
     }
 }
 
@@ -129,6 +140,12 @@ impl<T: Num> Mul<T> for Rational<T> {
     }
 }
 
+impl<T: Num> MulAssign for Rational<T> {
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = self.mul(rhs)
+    }
+}
+
 impl<T: Num> Div for Rational<T> {
     type Output = Self;
 
@@ -140,9 +157,77 @@ impl<T: Num> Div for Rational<T> {
     }
 }
 
+impl<T: Num> DivAssign for Rational<T> {
+    fn div_assign(&mut self, rhs: Self) {
+        *self = self.div(rhs)
+    }
+}
+
+impl<T: Num> Rem for Rational<T> {
+    type Output = Self;
+
+    fn rem(self, rhs: Self) -> Self::Output {
+        assert!(rhs.denominator.is_one());
+        Self::new(self.nominator % rhs.nominator, self.denominator)
+    }
+}
+
 impl<T: Num> PartialOrd for Rational<T> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         let (left, right) = Self::same_denominators(*self, *other);
         left.nominator.partial_cmp(&right.nominator)
+    }
+}
+
+impl<T: Num> Zero for Rational<T> {
+    fn zero() -> Self {
+        Self::from(T::zero())
+    }
+
+    fn is_zero(&self) -> bool {
+        self.nominator.is_zero()
+    }
+}
+
+impl<T: Num> One for Rational<T> {
+    fn one() -> Self {
+        Self::from(T::one())
+    }
+
+    fn is_one(&self) -> bool {
+        self.nominator.is_one()
+    }
+}
+
+impl<T: Num> Sum<Self> for Rational<T> {
+    fn sum<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = Self>,
+    {
+        iter.fold(Self::zero(), |a, b| a + b)
+    }
+}
+
+impl<T: Num> Display for Rational<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}/{}", self.nominator, self.denominator)
+    }
+}
+
+impl<T: Num> num_traits::Num for Rational<T> {
+    type FromStrRadixErr = T::FromStrRadixErr;
+
+    fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
+        Ok(Rational::from(T::from_str_radix(str, radix)?))
+    }
+}
+
+impl<T: Num> Num for Rational<T> {
+    fn abs(self) -> Self {
+        Self::new_unchecked(self.nominator.abs(), self.denominator)
+    }
+
+    fn into_decimal(self) -> f64 {
+        self.nominator.into_decimal() / self.denominator.into_decimal()
     }
 }
