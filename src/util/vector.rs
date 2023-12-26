@@ -2,40 +2,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::iter::Sum;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use num_traits::Zero;
-
-pub trait Num:
-    num_traits::Num
-    + Neg<Output = Self>
-    + AddAssign
-    + SubAssign
-    + MulAssign
-    + DivAssign
-    + Sum<Self>
-    + Copy
-    + Display
-    + Debug
-{
-    fn abs(self) -> Self;
-}
-
-impl Num for i32 {
-    fn abs(self) -> Self {
-        self.abs()
-    }
-}
-
-impl Num for i64 {
-    fn abs(self) -> Self {
-        self.abs()
-    }
-}
-
-impl Num for i128 {
-    fn abs(self) -> Self {
-        self.abs()
-    }
-}
+use super::num::Num;
 
 #[derive(Eq, PartialEq, Copy, Clone, Hash, Ord, PartialOrd)]
 pub struct Vector<const N: usize, T: Num = i32> {
@@ -97,7 +64,7 @@ impl<const N: usize, T: Num> Vector<N, T> {
 
     #[inline]
     pub fn from_iter(iter: impl Iterator<Item = T>) -> Self {
-        let mut coords = [Zero::zero(); N];
+        let mut coords = [T::zero(); N];
         for (i, value) in iter.take(N).enumerate() {
             coords[i] = value
         }
