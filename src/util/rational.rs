@@ -1,7 +1,9 @@
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
 use std::iter::Sum;
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, Sub, SubAssign};
+use std::ops::{
+    Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign,
+};
 
 use num_traits::{One, Zero};
 
@@ -169,6 +171,12 @@ impl<T: Num> Rem for Rational<T> {
     fn rem(self, rhs: Self) -> Self::Output {
         assert!(rhs.denominator.is_one());
         Self::new(self.nominator % rhs.nominator, self.denominator)
+    }
+}
+
+impl<T: Num> RemAssign<Self> for Rational<T> {
+    fn rem_assign(&mut self, rhs: Self) {
+        *self = self.rem(rhs)
     }
 }
 
