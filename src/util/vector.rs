@@ -2,10 +2,10 @@ use std::fmt::{Debug, Display, Formatter};
 use std::iter::Sum;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use num_traits::{Num, Zero};
+use num_traits::Zero;
 
-pub trait Int:
-    Num
+pub trait Num:
+    num_traits::Num
     + Neg<Output = Self>
     + AddAssign
     + SubAssign
@@ -19,31 +19,31 @@ pub trait Int:
     fn abs(self) -> Self;
 }
 
-impl Int for i32 {
+impl Num for i32 {
     fn abs(self) -> Self {
         self.abs()
     }
 }
 
-impl Int for i64 {
+impl Num for i64 {
     fn abs(self) -> Self {
         self.abs()
     }
 }
 
-impl Int for i128 {
+impl Num for i128 {
     fn abs(self) -> Self {
         self.abs()
     }
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Hash, Ord, PartialOrd)]
-pub struct Vector<const N: usize, T: Int = i32> {
+pub struct Vector<const N: usize, T: Num = i32> {
     pub coords: [T; N],
 }
 
 #[allow(dead_code)]
-impl<const N: usize, T: Int> Vector<N, T> {
+impl<const N: usize, T: Num> Vector<N, T> {
     #[inline]
     pub fn zero() -> Self {
         Self {
@@ -105,13 +105,13 @@ impl<const N: usize, T: Int> Vector<N, T> {
     }
 }
 
-impl<const N: usize, T: Int> Default for Vector<N, T> {
+impl<const N: usize, T: Num> Default for Vector<N, T> {
     fn default() -> Self {
         Self::zero()
     }
 }
 
-impl<const N: usize, T: Int> Display for Vector<N, T> {
+impl<const N: usize, T: Num> Display for Vector<N, T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "(")?;
         for (i, coord) in self.coords.iter().enumerate() {
@@ -125,7 +125,7 @@ impl<const N: usize, T: Int> Display for Vector<N, T> {
     }
 }
 
-impl<const N: usize, T: Int> Debug for Vector<N, T> {
+impl<const N: usize, T: Num> Debug for Vector<N, T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut f = f.debug_tuple(&format!("Vector<{}>", N));
         for coord in self.coords.iter() {
@@ -135,19 +135,19 @@ impl<const N: usize, T: Int> Debug for Vector<N, T> {
     }
 }
 
-impl<const N: usize, T: Int> From<[T; N]> for Vector<N, T> {
+impl<const N: usize, T: Num> From<[T; N]> for Vector<N, T> {
     fn from(coords: [T; N]) -> Self {
         Self { coords }
     }
 }
 
-impl<const N: usize, T: Int> From<Vector<N, T>> for [T; N] {
+impl<const N: usize, T: Num> From<Vector<N, T>> for [T; N] {
     fn from(vector: Vector<N, T>) -> Self {
         vector.coords
     }
 }
 
-impl<const N: usize, T: Int> Add for Vector<N, T> {
+impl<const N: usize, T: Num> Add for Vector<N, T> {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
@@ -155,7 +155,7 @@ impl<const N: usize, T: Int> Add for Vector<N, T> {
     }
 }
 
-impl<const N: usize, T: Int> Sub for Vector<N, T> {
+impl<const N: usize, T: Num> Sub for Vector<N, T> {
     type Output = Self;
 
     fn sub(self: Self, other: Self) -> Self {
@@ -163,7 +163,7 @@ impl<const N: usize, T: Int> Sub for Vector<N, T> {
     }
 }
 
-impl<const N: usize, T: Int> Neg for Vector<N, T> {
+impl<const N: usize, T: Num> Neg for Vector<N, T> {
     type Output = Self;
 
     fn neg(self) -> Self {
@@ -171,19 +171,19 @@ impl<const N: usize, T: Int> Neg for Vector<N, T> {
     }
 }
 
-impl<const N: usize, T: Int> AddAssign for Vector<N, T> {
+impl<const N: usize, T: Num> AddAssign for Vector<N, T> {
     fn add_assign(&mut self, other: Self) {
         self.zip_in_place(&other, |x, y| x.add_assign(y));
     }
 }
 
-impl<const N: usize, T: Int> SubAssign for Vector<N, T> {
+impl<const N: usize, T: Num> SubAssign for Vector<N, T> {
     fn sub_assign(&mut self, other: Self) {
         self.zip_in_place(&other, |x, y| x.sub_assign(y));
     }
 }
 
-impl<const N: usize, T: Int> Mul<T> for Vector<N, T> {
+impl<const N: usize, T: Num> Mul<T> for Vector<N, T> {
     type Output = Self;
 
     fn mul(self, rhs: T) -> Self::Output {
@@ -191,13 +191,13 @@ impl<const N: usize, T: Int> Mul<T> for Vector<N, T> {
     }
 }
 
-impl<const N: usize, T: Int> MulAssign<T> for Vector<N, T> {
+impl<const N: usize, T: Num> MulAssign<T> for Vector<N, T> {
     fn mul_assign(&mut self, rhs: T) {
         self.for_each(|x| x.mul_assign(rhs));
     }
 }
 
-impl<const N: usize, T: Int> Div<T> for Vector<N, T> {
+impl<const N: usize, T: Num> Div<T> for Vector<N, T> {
     type Output = Self;
 
     fn div(self, rhs: T) -> Self::Output {
@@ -205,7 +205,7 @@ impl<const N: usize, T: Int> Div<T> for Vector<N, T> {
     }
 }
 
-impl<const N: usize, T: Int> DivAssign<T> for Vector<N, T> {
+impl<const N: usize, T: Num> DivAssign<T> for Vector<N, T> {
     fn div_assign(&mut self, rhs: T) {
         self.for_each(|x| x.div_assign(rhs));
     }
@@ -214,7 +214,7 @@ impl<const N: usize, T: Int> DivAssign<T> for Vector<N, T> {
 pub type Vector2D<T = i32> = Vector<2, T>;
 
 #[allow(dead_code)]
-impl<T: Int> Vector2D<T> {
+impl<T: Num> Vector2D<T> {
     pub const fn new(x: T, y: T) -> Self {
         Self { coords: [x, y] }
     }
@@ -267,7 +267,7 @@ impl<T: Int> Vector2D<T> {
 pub type Vector3D<T = i32> = Vector<3, T>;
 
 #[allow(dead_code)]
-impl<T: Int> Vector3D<T> {
+impl<T: Num> Vector3D<T> {
     pub const fn new(x: T, y: T, z: T) -> Self {
         Self { coords: [x, y, z] }
     }
