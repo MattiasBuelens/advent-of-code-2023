@@ -1,7 +1,11 @@
 use aoc_runner_derive::{aoc, aoc_generator};
+use num_traits::Zero;
+
+use crate::util::{array_windows, gcd};
 
 type Vector3D = crate::util::Vector3D<i64>;
 type FloatVector2D = crate::util::Vector2D<f64>;
+type FloatVector3D = crate::util::Vector3D<f64>;
 
 #[derive(Debug, Copy, Clone)]
 struct Hailstone {
@@ -24,22 +28,50 @@ fn parse(input: &str) -> Vec<Hailstone> {
 
 impl Hailstone {
     fn intersect_2d(&self, other: &Self) -> Option<FloatVector2D> {
-        // m = vy / vx
-        let m1 = (self.vel.y() as f64) / (self.vel.x() as f64);
-        let m2 = (other.vel.y() as f64) / (other.vel.x() as f64);
-        if m1 == m2 {
+        self.intersect(other, true).map(|pos| pos.into_2d())
+    }
+
+    fn intersect_3d(&self, other: &Self) -> Option<FloatVector3D> {
+        self.intersect(other, false)
+    }
+
+    fn intersect(&self, other: &Self, skip_z: bool) -> Option<FloatVector3D> {
+        // Parametric equations for X coordinates of line 1 and 2:
+        // x1 = pos1.x + vel1.x * t1
+        // x2 = pos2.x + vel2.x * t2
+        // X coordinates must be equal for some values of t1 and t2:
+        // pos1.x + vel1.x * t1 = pos2.x + vel2.x * t2
+        // t1 = ((pos2.x - pos1.x) + (vel2.x * t2)) / vel1.x  (1)
+        // Same for Y and Z:
+        // t1 = ((pos2.y - pos1.y) + (vel2.y * t2)) / vel1.y  (2)
+        // t1 = ((pos2.z - pos1.z) + (vel2.z * t2)) / vel1.z  (3)
+        // Setting (1) and (2) equal:
+        // t2 = ((vel1.x * (pos1.y - pos2.y) - vel1.y * (pos1.x - pos2.x)) / (vel1.x * vel2.y - vel2.x * vel1.y)
+        let determinant_vel = self.vel.x() * other.vel.y() - other.vel.x() * self.vel.y();
+        if determinant_vel == 0 {
             // Parallel
             return None;
         }
-        // y = m * x + b => b = y - m * x
-        let b1 = (self.pos.y() as f64) - m1 * (self.pos.x() as f64);
-        let b2 = (other.pos.y() as f64) - m2 * (other.pos.x() as f64);
-        // m1 * x + b1 = m2 * x + b2
-        // (m1 - m2) * x = b2 - b1
-        // x = (b2 - b1) / (m1 - m2)
-        let intersect_x = (b2 - b1) / (m1 - m2);
-        let intersect_y = intersect_x * m1 + b1;
-        Some(FloatVector2D::new(intersect_x, intersect_y))
+        let pos1 = self.pos.to_f64();
+        let pos2 = other.pos.to_f64();
+        let vel1 = self.vel.to_f64();
+        let vel2 = other.vel.to_f64();
+        let t2 = (vel1.x() * (pos1.y() - pos2.y()) - vel1.y() * (pos1.x() - pos2.x()))
+            / (determinant_vel as f64);
+        // Substitute in (1) to find t1:
+        let t1 = ((pos2.x() - pos1.x()) + (vel2.x() * t2)) / vel1.x();
+        let mut intersect1 = pos1 + vel1 * t1;
+        let mut intersect2 = pos2 + vel2 * t2;
+        // Ignore Z for part 1
+        if skip_z {
+            *intersect1.z_mut() = 0.0;
+            *intersect2.z_mut() = 0.0;
+        }
+        // Check if it also works for Z
+        if !intersect1.relative_eq(&intersect2, 1e-12) {
+            return None;
+        }
+        Some(intersect1)
     }
 
     fn time_for(&self, pos: FloatVector2D) -> f64 {

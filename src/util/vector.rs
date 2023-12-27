@@ -1,6 +1,8 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
+use approx::relative_ne;
+
 use super::num::Num;
 
 #[derive(Eq, PartialEq, Copy, Clone, Hash, Ord, PartialOrd)]
@@ -39,8 +41,8 @@ impl<const N: usize, T: Num> Vector<N, T> {
     }
 
     #[inline]
-    pub fn map(&self, f: impl FnMut(T) -> T) -> Self {
-        Self {
+    pub fn map<U: Num>(&self, f: impl FnMut(T) -> U) -> Vector<N, U> {
+        Vector {
             coords: self.coords.map(f),
         }
     }
@@ -68,6 +70,33 @@ impl<const N: usize, T: Num> Vector<N, T> {
             coords[i] = value
         }
         Self { coords }
+    }
+
+    pub fn dot_product(self, other: Self) -> T {
+        let mut product = T::zero();
+        for i in 0..N {
+            product += self.coords[i] * other.coords[i];
+        }
+        product
+    }
+
+    pub fn to_f64(self) -> Vector<N, f64> {
+        self.map(|x| x.as_())
+    }
+}
+
+impl<const N: usize> Vector<N, f64> {
+    pub fn relative_eq(&self, other: &Self, max_relative: f64) -> bool {
+        for i in 0..N {
+            if relative_ne!(
+                self.coords[i],
+                other.coords[i],
+                max_relative = max_relative
+            ) {
+                return false;
+            }
+        }
+        true
     }
 }
 

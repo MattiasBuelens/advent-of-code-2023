@@ -2,8 +2,17 @@ use std::fmt::{Debug, Display};
 use std::iter::Sum;
 use std::ops::Neg;
 
+use num_traits::AsPrimitive;
+
 pub trait Num:
-    num_traits::NumAssign + Neg<Output = Self> + PartialOrd + Sum<Self> + Copy + Display + Debug
+    num_traits::NumAssign
+    + Neg<Output = Self>
+    + PartialOrd
+    + Sum<Self>
+    + AsPrimitive<f64>
+    + Copy
+    + Display
+    + Debug
 {
     fn abs(self) -> Self;
 }
