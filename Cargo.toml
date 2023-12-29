@@ -15,3 +15,6 @@ aoc-runner-derive = "0.3.0"
 pathfinding = "4.6.0"
 num-traits = "0.2.17"
 approx = "0.5.1"
+# Download z3 from https://github.com/Z3Prover/z3/releases/tag/z3-4.12.4
+# and extract to C:\Programs\z3-4.12.4-x86-win\
+z3 = { version = "0.12.1" }
