@@ -1,2 +1,6 @@
+[target.x86_64-pc-windows-msvc]
+# rustc-link-lib = "libz3"
+rustflags = ["-L", "C:\\Programs\\z3-4.12.4-x86-win\\bin"]
+
 [env]
 Z3_SYS_Z3_HEADER = "C:\\Programs\\z3-4.12.4-x86-win\\include\\z3.h"

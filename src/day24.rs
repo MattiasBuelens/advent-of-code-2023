@@ -1,7 +1,9 @@
+use std::ops::Mul;
+
 use aoc_runner_derive::{aoc, aoc_generator};
 use num_traits::Zero;
-
-use crate::util::{array_windows, gcd};
+use z3::ast::{Ast, Int};
+use z3::*;
 
 type Vector3D = crate::util::Vector3D<i64>;
 type FloatVector2D = crate::util::Vector2D<f64>;
@@ -113,8 +115,47 @@ fn part1(hailstones: &[Hailstone]) -> usize {
 }
 
 #[aoc(day24, part2)]
-fn part2(hailstones: &[Hailstone]) -> usize {
-    todo!()
+fn part2(hailstones: &[Hailstone]) -> i64 {
+    let ctx = Context::new(&Config::new());
+    // The rock's position
+    let pos_x = Int::new_const(&ctx, "pos_x");
+    let pos_y = Int::new_const(&ctx, "pos_y");
+    let pos_z = Int::new_const(&ctx, "pos_z");
+    // The rock's velocity
+    let vel_x = Int::new_const(&ctx, "vel_x");
+    let vel_y = Int::new_const(&ctx, "vel_y");
+    let vel_z = Int::new_const(&ctx, "vel_z");
+    // The collision time with each hailstone
+    let collision_times = hailstones
+        .iter()
+        .enumerate()
+        .map(|(i, _)| Int::new_const(&ctx, format!("time_{i}")))
+        .collect::<Vec<_>>();
+    // Set up equations
+    let solver = Solver::new(&ctx);
+    for (i, hailstone) in hailstones.iter().enumerate() {
+        let collision_time = &collision_times[i];
+        // Collide in all three coordinates
+        solver.assert(
+            &(collision_time * &vel_x + &pos_x)
+                ._eq(&(collision_time * hailstone.vel.x() + hailstone.pos.x())),
+        );
+        solver.assert(
+            &(collision_time * &vel_y + &pos_y)
+                ._eq(&(collision_time * hailstone.vel.y() + hailstone.pos.y())),
+        );
+        solver.assert(
+            &(collision_time * &vel_z + &pos_z)
+                ._eq(&(collision_time * hailstone.vel.z() + hailstone.pos.z())),
+        );
+    }
+    assert_eq!(solver.check(), SatResult::Sat);
+    let model = solver.get_model().unwrap();
+    let pos_x = model.eval(&pos_x, true).unwrap().as_i64().unwrap();
+    let pos_y = model.eval(&pos_y, true).unwrap().as_i64().unwrap();
+    let pos_z = model.eval(&pos_z, true).unwrap().as_i64().unwrap();
+    dbg!(pos_x, pos_y, pos_z);
+    pos_x + pos_y + pos_z
 }
 
 #[cfg(test)]
@@ -134,6 +175,6 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse(INPUT)), 0);
+        assert_eq!(part2(&parse(INPUT)), 47);
     }
 }
