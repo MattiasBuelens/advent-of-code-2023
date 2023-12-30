@@ -153,7 +153,7 @@ impl<const N: usize, T: Num> Add for Vector<N, T> {
 impl<const N: usize, T: Num> Sub for Vector<N, T> {
     type Output = Self;
 
-    fn sub(self: Self, other: Self) -> Self {
+    fn sub(self, other: Self) -> Self {
         self.zip_with(&other, |x, y| x - y)
     }
 }

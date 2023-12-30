@@ -31,6 +31,7 @@ impl Hailstone {
         self.intersect(other, true).map(|pos| pos.into_2d())
     }
 
+    #[allow(unused)]
     fn intersect_3d(&self, other: &Self) -> Option<FloatVector3D> {
         self.intersect(other, false)
     }
@@ -132,7 +133,7 @@ fn make_z3_script(hailstones: &[Hailstone]) -> String {
     script.push_str("(declare-const vel_y Int)\n");
     script.push_str("(declare-const vel_z Int)\n");
     // The collision time with each hailstone
-    for (i, hailstone) in hailstones.iter().enumerate() {
+    for (i, _hailstone) in hailstones.iter().enumerate() {
         script.push_str(&format!("(declare-const time_{i} Int)\n"));
     }
     // Set up equations
@@ -184,7 +185,7 @@ fn part2(hailstones: &[Hailstone]) -> i64 {
         .stdout(Stdio::piped())
         .spawn()
         .expect("failed to spawn z3");
-    process.stdin.unwrap().write(script.as_bytes()).unwrap();
+    process.stdin.unwrap().write_all(script.as_bytes()).unwrap();
     let mut output = String::new();
     process.stdout.unwrap().read_to_string(&mut output).unwrap();
     let pos_x = read_z3_constant(&output, "pos_x");
