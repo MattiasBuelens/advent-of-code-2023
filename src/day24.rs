@@ -1,7 +1,4 @@
 use aoc_runner_derive::{aoc, aoc_generator};
-use num_traits::Zero;
-
-use crate::util::{array_windows, gcd};
 
 type Vector3D = crate::util::Vector3D<i64>;
 type FloatVector2D = crate::util::Vector2D<f64>;
@@ -112,8 +109,60 @@ fn part1(hailstones: &[Hailstone]) -> usize {
     count_intersections(hailstones, 200_000_000_000_000.0, 400_000_000_000_000.0)
 }
 
+fn make_z3_equation(
+    coord: char,
+    hailstone_pos: i64,
+    hailstone_vel: i64,
+    time_index: usize,
+) -> String {
+    format!("(assert (= (+ (* time_{time_index} vel_{coord}) pos_{coord}) (+ (* time_{time_index} {hailstone_vel}) {hailstone_pos})))\n")
+}
+
+fn make_z3_script(hailstones: &[Hailstone]) -> String {
+    let mut script = String::new();
+    // The rock's position
+    script.push_str("(declare-const pos_x Int)\n");
+    script.push_str("(declare-const pos_y Int)\n");
+    script.push_str("(declare-const pos_z Int)\n");
+    // The rock's velocity
+    script.push_str("(declare-const vel_x Int)\n");
+    script.push_str("(declare-const vel_y Int)\n");
+    script.push_str("(declare-const vel_z Int)\n");
+    // The collision time with each hailstone
+    for (i, hailstone) in hailstones.iter().enumerate() {
+        script.push_str(&format!("(declare-const time_{i} Int)\n"));
+    }
+    // Set up equations
+    for (i, hailstone) in hailstones.iter().enumerate() {
+        // Collide in all three coordinates
+        script.push_str(&make_z3_equation(
+            'x',
+            hailstone.pos.x(),
+            hailstone.vel.x(),
+            i,
+        ));
+        script.push_str(&make_z3_equation(
+            'y',
+            hailstone.pos.y(),
+            hailstone.vel.y(),
+            i,
+        ));
+        script.push_str(&make_z3_equation(
+            'z',
+            hailstone.pos.z(),
+            hailstone.vel.z(),
+            i,
+        ));
+    }
+    script.push_str("(check-sat)\n");
+    script.push_str("(get-model)\n");
+    script
+}
+
 #[aoc(day24, part2)]
-fn part2(hailstones: &[Hailstone]) -> usize {
+fn part2(hailstones: &[Hailstone]) -> i64 {
+    println!("{}", make_z3_script(hailstones));
+    // TODO Run z3 on resulting script, and extract variables from model
     todo!()
 }
 
@@ -134,6 +183,6 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        assert_eq!(part2(&parse(INPUT)), 0);
+        assert_eq!(part2(&parse(INPUT)), 47);
     }
 }
