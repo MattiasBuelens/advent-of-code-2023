@@ -1,3 +1,6 @@
+use std::io::{Read, Write};
+use std::process::{Command, Stdio};
+
 use aoc_runner_derive::{aoc, aoc_generator};
 
 type Vector3D = crate::util::Vector3D<i64>;
@@ -159,11 +162,35 @@ fn make_z3_script(hailstones: &[Hailstone]) -> String {
     script
 }
 
+fn read_z3_constant(output: &str, name: &str) -> i64 {
+    let mut lines = output.lines();
+    let pattern = format!("(define-fun {name} () Int");
+    while let Some(line) = lines.next() {
+        if line.contains(&pattern) {
+            let next_line = lines.next().unwrap();
+            let value = next_line.trim().strip_suffix(')').unwrap();
+            return value.parse().unwrap();
+        }
+    }
+    panic!("no variable named {name} in z3 output")
+}
+
 #[aoc(day24, part2)]
 fn part2(hailstones: &[Hailstone]) -> i64 {
-    println!("{}", make_z3_script(hailstones));
-    // TODO Run z3 on resulting script, and extract variables from model
-    todo!()
+    let script = make_z3_script(hailstones);
+    let process = Command::new("z3")
+        .arg("-in") // read from standard input
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("failed to spawn z3");
+    process.stdin.unwrap().write(script.as_bytes()).unwrap();
+    let mut output = String::new();
+    process.stdout.unwrap().read_to_string(&mut output).unwrap();
+    let pos_x = read_z3_constant(&output, "pos_x");
+    let pos_y = read_z3_constant(&output, "pos_y");
+    let pos_z = read_z3_constant(&output, "pos_z");
+    pos_x + pos_y + pos_z
 }
 
 #[cfg(test)]
