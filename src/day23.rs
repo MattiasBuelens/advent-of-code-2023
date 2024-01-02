@@ -2,7 +2,7 @@ use std::collections::{BTreeSet, HashMap};
 use std::hash::Hash;
 
 use aoc_runner_derive::{aoc, aoc_generator};
-use pathfinding::prelude::bfs_reach;
+use pathfinding::prelude::topological_sort;
 
 use crate::util::{Direction, Vector2D};
 
@@ -41,38 +41,65 @@ fn parse(input: &str) -> Map {
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 struct State {
     pos: Vector2D,
-    cost: u64,
     seen: BTreeSet<Vector2D>,
 }
 
 fn successors(state: &State, map: &Map, part2: bool) -> Vec<State> {
-    Direction::all()
-        .iter()
-        .filter_map(|dir| {
-            let next_pos = state.pos + dir.step();
-            let next_tile = map.get(&next_pos)?;
-            let (next_pos, cost) = match next_tile {
+    let mut result = Vec::<State>::new();
+    for dir in Direction::all() {
+        let next_pos = state.pos + dir.step();
+        if let Some(next_tile) = map.get(&next_pos) {
+            let (next_pos, _cost) = match next_tile {
                 Tile::Path => (next_pos, 1),
                 Tile::Slope(_) if part2 => (next_pos, 1),
-                Tile::Slope(slope_dir) if slope_dir == dir && !part2 => {
+                Tile::Slope(slope_dir) if *slope_dir == dir && !part2 => {
                     // Slide down the slope
                     (next_pos + dir.step(), 2)
                 }
-                _ => return None,
+                _ => continue,
             };
             if state.seen.contains(&next_pos) {
-                return None;
+                continue;
             }
             let mut next_seen = state.seen.clone();
             next_seen.insert(next_pos);
-            Some(State {
+            result.push(State {
                 pos: next_pos,
-                cost: state.cost + cost,
                 seen: next_seen,
             })
-        })
-        .collect()
+        }
+    }
+    result
 }
+
+// fn successors_with_cost(state: &State, map: &Map, part2: bool) -> Vec<State> {
+//     Direction::all()
+//         .iter()
+//         .filter_map(|dir| {
+//             let next_pos = state.pos + dir.step();
+//             let next_tile = map.get(&next_pos)?;
+//             let (next_pos, cost) = match next_tile {
+//                 Tile::Path => (next_pos, 1),
+//                 Tile::Slope(_) if part2 => (next_pos, 1),
+//                 Tile::Slope(slope_dir) if slope_dir == dir && !part2 => {
+//                     // Slide down the slope
+//                     (next_pos + dir.step(), 2)
+//                 }
+//                 _ => return None,
+//             };
+//             if state.seen.contains(&next_pos) {
+//                 return None;
+//             }
+//             let mut next_seen = state.seen.clone();
+//             next_seen.insert(next_pos);
+//             Some(State {
+//                 pos: next_pos,
+//                 cost: state.cost + cost,
+//                 seen: next_seen,
+//             })
+//         })
+//         .collect()
+// }
 
 fn solve(map: &Map, part2: bool) -> u64 {
     let max_y = map.keys().map(|pos| pos.y()).max().unwrap();
@@ -86,14 +113,12 @@ fn solve(map: &Map, part2: bool) -> u64 {
         .unwrap();
     let start_state = State {
         pos: start,
-        cost: 0,
-        seen: BTreeSet::from([start]),
+        seen: BTreeSet::new(),
     };
-    let longest = bfs_reach(start_state, |state| successors(state, map, part2))
-        .filter(|state| state.pos == goal)
-        .max_by_key(|state| state.cost)
-        .unwrap();
-    longest.cost
+    let sorted_positions = topological_sort(&[start_state], |state| successors(state, map, part2))
+        .expect("invalid graph, cycle detected");
+    dbg!(sorted_positions.len());
+    0
 }
 
 #[aoc(day23, part1)]
