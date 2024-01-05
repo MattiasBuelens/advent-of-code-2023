@@ -1,5 +1,5 @@
 use std::collections::{BTreeSet, HashMap, VecDeque};
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 
 use aoc_runner_derive::{aoc, aoc_generator};
 use pathfinding::prelude::bfs_reach;
@@ -38,7 +38,11 @@ fn parse(input: &str) -> Map {
         .collect()
 }
 
-type CrossingMap = HashMap<Vector2D, Vec<(Vector2D, u64)>>;
+struct Crossing {
+    neighbours: HashMap<Direction, (Vector2D, u64)>,
+}
+
+type CrossingMap = HashMap<Vector2D, Crossing>;
 
 fn get_neighbour(pos: Vector2D, dir: Direction, map: &Map, part2: bool) -> Option<(Vector2D, u64)> {
     let next_pos = pos + dir.step();
@@ -86,16 +90,12 @@ fn find_next_crossing(
     Some((pos, cost))
 }
 
-fn find_next_crossings(
-    pos: Vector2D,
-    map: &Map,
-    goal: Vector2D,
-    part2: bool,
-) -> Vec<(Vector2D, u64)> {
-    Direction::all()
+fn find_next_crossings(pos: Vector2D, map: &Map, goal: Vector2D, part2: bool) -> Crossing {
+    let neighbours = Direction::all()
         .iter()
-        .filter_map(|&dir| find_next_crossing(pos, dir, map, goal, part2))
-        .collect()
+        .filter_map(|&dir| Some((dir, find_next_crossing(pos, dir, map, goal, part2)?)))
+        .collect::<HashMap<_, _>>();
+    Crossing { neighbours }
 }
 
 fn reduce_map(map: &Map, start: Vector2D, goal: Vector2D, part2: bool) -> CrossingMap {
@@ -103,7 +103,7 @@ fn reduce_map(map: &Map, start: Vector2D, goal: Vector2D, part2: bool) -> Crossi
     let mut queue = VecDeque::from([start]);
     while let Some(crossing) = queue.pop_front() {
         let next_crossings = find_next_crossings(crossing, map, goal, part2);
-        for &(next_crossing, _cost) in &next_crossings {
+        for (&dir, &(next_crossing, _cost)) in &next_crossings.neighbours {
             if !crossings.contains_key(&next_crossing) {
                 queue.push_back(next_crossing);
             }
@@ -113,27 +113,47 @@ fn reduce_map(map: &Map, start: Vector2D, goal: Vector2D, part2: bool) -> Crossi
     crossings
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone)]
 struct State {
     pos: Vector2D,
     cost: u64,
     seen: BTreeSet<Vector2D>,
+    turns: Vec<Direction>,
+}
+
+impl PartialEq for State {
+    fn eq(&self, other: &Self) -> bool {
+        self.pos == other.pos && self.turns == other.turns
+    }
+}
+
+impl Eq for State {}
+
+impl Hash for State {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.pos.hash(state);
+        self.turns.hash(state);
+    }
 }
 
 fn successors(state: &State, map: &CrossingMap) -> Vec<State> {
     map.get(&state.pos)
         .unwrap()
+        .neighbours
         .iter()
-        .filter_map(|&(next_pos, next_cost)| {
+        .filter_map(|(&next_dir, &(next_pos, next_cost))| {
             if state.seen.contains(&next_pos) {
                 return None;
             }
             let mut next_seen = state.seen.clone();
+            let mut next_turns = state.turns.clone();
             next_seen.insert(next_pos);
+            next_turns.push(next_dir);
             Some(State {
                 pos: next_pos,
                 cost: state.cost + next_cost,
                 seen: next_seen,
+                turns: next_turns,
             })
         })
         .collect()
@@ -154,6 +174,7 @@ fn solve(map: &Map, part2: bool) -> u64 {
         pos: start,
         cost: 0,
         seen: BTreeSet::from([start]),
+        turns: vec![],
     };
     let longest = bfs_reach(start_state, |state| successors(state, &map))
         .filter(|state| state.pos == goal)
