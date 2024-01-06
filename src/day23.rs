@@ -1,8 +1,6 @@
-use std::collections::{BTreeSet, HashMap, VecDeque};
-use std::hash::{Hash, Hasher};
+use std::collections::{HashMap, VecDeque};
 
 use aoc_runner_derive::{aoc, aoc_generator};
-use pathfinding::prelude::bfs_reach;
 
 use crate::util::{Direction, Vector2D};
 
@@ -113,29 +111,6 @@ fn reduce_map(map: &Map, start: Vector2D, goal: Vector2D, part2: bool) -> Crossi
     crossings
 }
 
-#[derive(Debug, Clone)]
-struct State {
-    pos: Vector2D,
-    cost: u64,
-    seen: BTreeSet<Vector2D>,
-    turns: Vec<Direction>,
-}
-
-impl PartialEq for State {
-    fn eq(&self, other: &Self) -> bool {
-        self.pos == other.pos && self.turns == other.turns
-    }
-}
-
-impl Eq for State {}
-
-impl Hash for State {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.pos.hash(state);
-        self.turns.hash(state);
-    }
-}
-
 impl Crossing {
     fn is_vertical_edge(&self) -> bool {
         !self.neighbours.contains_key(&Direction::W) || !self.neighbours.contains_key(&Direction::E)
@@ -146,13 +121,25 @@ impl Crossing {
     }
 }
 
-fn successors(state: &State, map: &CrossingMap) -> Vec<State> {
-    let crossing = map.get(&state.pos).unwrap();
-    crossing
+fn dfs_longest(
+    start: Vector2D,
+    goal: Vector2D,
+    seen: Vec<Vector2D>,
+    map: &CrossingMap,
+    cache: &mut HashMap<Vec<Vector2D>, Option<u64>>,
+) -> Option<u64> {
+    if let Some(&cached_longest) = cache.get(&seen) {
+        return cached_longest;
+    }
+    let crossing = map.get(&start).unwrap();
+    let longest = crossing
         .neighbours
         .iter()
         .filter_map(|(&next_dir, &(next_pos, next_cost))| {
-            if state.seen.contains(&next_pos) {
+            if next_pos == goal {
+                return Some(next_cost);
+            }
+            if seen.contains(&next_pos) {
                 return None;
             }
             if crossing.is_vertical_edge() && next_dir == Direction::N {
@@ -161,18 +148,14 @@ fn successors(state: &State, map: &CrossingMap) -> Vec<State> {
             if crossing.is_horizontal_edge() && next_dir == Direction::W {
                 return None;
             }
-            let mut next_seen = state.seen.clone();
-            let mut next_turns = state.turns.clone();
-            next_seen.insert(next_pos);
-            next_turns.push(next_dir);
-            Some(State {
-                pos: next_pos,
-                cost: state.cost + next_cost,
-                seen: next_seen,
-                turns: next_turns,
-            })
+            let mut next_seen = seen.clone();
+            next_seen.push(next_pos);
+            let next_longest = next_cost + dfs_longest(next_pos, goal, next_seen, map, cache)?;
+            Some(next_longest)
         })
-        .collect()
+        .max();
+    cache.insert(seen, longest);
+    longest
 }
 
 fn solve(map: &Map, part2: bool) -> u64 {
@@ -186,17 +169,8 @@ fn solve(map: &Map, part2: bool) -> u64 {
         .find(|(pos, &tile)| pos.y() == max_y && tile == Tile::Path)
         .unwrap();
     let map = reduce_map(map, start, goal, part2);
-    let start_state = State {
-        pos: start,
-        cost: 0,
-        seen: BTreeSet::from([start]),
-        turns: vec![],
-    };
-    let longest = bfs_reach(start_state, |state| successors(state, &map))
-        .filter(|state| state.pos == goal)
-        .max_by_key(|state| state.cost)
-        .unwrap();
-    longest.cost
+    let longest = dfs_longest(start, goal, vec![start], &map, &mut HashMap::new()).unwrap();
+    longest
 }
 
 #[aoc(day23, part1)]
