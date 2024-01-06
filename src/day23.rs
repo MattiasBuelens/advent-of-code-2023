@@ -101,7 +101,7 @@ fn reduce_map(map: &Map, start: Vector2D, goal: Vector2D, part2: bool) -> Crossi
     let mut queue = VecDeque::from([start]);
     while let Some(crossing) = queue.pop_front() {
         let next_crossings = find_next_crossings(crossing, map, goal, part2);
-        for (&dir, &(next_crossing, _cost)) in &next_crossings.neighbours {
+        for &(next_crossing, _cost) in next_crossings.neighbours.values() {
             if !crossings.contains_key(&next_crossing) {
                 queue.push_back(next_crossing);
             }
@@ -169,8 +169,8 @@ fn solve(map: &Map, part2: bool) -> u64 {
         .find(|(pos, &tile)| pos.y() == max_y && tile == Tile::Path)
         .unwrap();
     let map = reduce_map(map, start, goal, part2);
-    let longest = dfs_longest(start, goal, vec![start], &map, &mut HashMap::new()).unwrap();
-    longest
+
+    dfs_longest(start, goal, vec![start], &map, &mut HashMap::new()).unwrap()
 }
 
 #[aoc(day23, part1)]

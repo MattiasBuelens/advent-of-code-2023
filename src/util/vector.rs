@@ -88,11 +88,7 @@ impl<const N: usize, T: Num> Vector<N, T> {
 impl<const N: usize> Vector<N, f64> {
     pub fn relative_eq(&self, other: &Self, max_relative: f64) -> bool {
         for i in 0..N {
-            if relative_ne!(
-                self.coords[i],
-                other.coords[i],
-                max_relative = max_relative
-            ) {
+            if relative_ne!(self.coords[i], other.coords[i], max_relative = max_relative) {
                 return false;
             }
         }
