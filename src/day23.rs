@@ -136,13 +136,29 @@ impl Hash for State {
     }
 }
 
+impl Crossing {
+    fn is_vertical_edge(&self) -> bool {
+        !self.neighbours.contains_key(&Direction::W) || !self.neighbours.contains_key(&Direction::E)
+    }
+
+    fn is_horizontal_edge(&self) -> bool {
+        !self.neighbours.contains_key(&Direction::N) || !self.neighbours.contains_key(&Direction::S)
+    }
+}
+
 fn successors(state: &State, map: &CrossingMap) -> Vec<State> {
-    map.get(&state.pos)
-        .unwrap()
+    let crossing = map.get(&state.pos).unwrap();
+    crossing
         .neighbours
         .iter()
         .filter_map(|(&next_dir, &(next_pos, next_cost))| {
             if state.seen.contains(&next_pos) {
+                return None;
+            }
+            if crossing.is_vertical_edge() && next_dir == Direction::N {
+                return None;
+            }
+            if crossing.is_horizontal_edge() && next_dir == Direction::W {
                 return None;
             }
             let mut next_seen = state.seen.clone();
