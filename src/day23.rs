@@ -126,13 +126,9 @@ fn dfs_longest(
     goal: Vector2D,
     seen: Vec<Vector2D>,
     map: &CrossingMap,
-    cache: &mut HashMap<Vec<Vector2D>, Option<u64>>,
 ) -> Option<u64> {
-    if let Some(&cached_longest) = cache.get(&seen) {
-        return cached_longest;
-    }
     let crossing = map.get(&start).unwrap();
-    let longest = crossing
+    crossing
         .neighbours
         .iter()
         .filter_map(|(&next_dir, &(next_pos, next_cost))| {
@@ -150,12 +146,10 @@ fn dfs_longest(
             }
             let mut next_seen = seen.clone();
             next_seen.push(next_pos);
-            let next_longest = next_cost + dfs_longest(next_pos, goal, next_seen, map, cache)?;
+            let next_longest = next_cost + dfs_longest(next_pos, goal, next_seen, map)?;
             Some(next_longest)
         })
-        .max();
-    cache.insert(seen, longest);
-    longest
+        .max()
 }
 
 fn solve(map: &Map, part2: bool) -> u64 {
@@ -170,7 +164,7 @@ fn solve(map: &Map, part2: bool) -> u64 {
         .unwrap();
     let map = reduce_map(map, start, goal, part2);
 
-    dfs_longest(start, goal, vec![start], &map, &mut HashMap::new()).unwrap()
+    dfs_longest(start, goal, vec![start], &map).unwrap()
 }
 
 #[aoc(day23, part1)]
