@@ -1,11 +1,13 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use aoc_runner_derive::{aoc, aoc_generator};
-use pathfinding::undirected::connected_components::connected_components;
+use rand::seq::IteratorRandom;
+use rand::SeedableRng;
 
 #[derive(Debug, Default, Clone)]
 struct Graph {
-    connections: HashMap<String, HashSet<String>>,
+    connections: HashMap<String, Vec<String>>,
+    weights: HashMap<String, usize>,
 }
 
 impl Graph {
@@ -13,11 +15,13 @@ impl Graph {
         self.connections
             .entry(from.to_string())
             .or_default()
-            .insert(to.to_string());
+            .push(to.to_string());
         self.connections
             .entry(to.to_string())
             .or_default()
-            .insert(from.to_string());
+            .push(from.to_string());
+        self.weights.entry(from.to_string()).or_insert(1);
+        self.weights.entry(to.to_string()).or_insert(1);
     }
 }
 
@@ -40,15 +44,6 @@ fn part1(graph: &Graph) -> usize {
 }
 
 impl Graph {
-    fn remove(&mut self, from: &str, to: &str) {
-        self.connections.entry(from.to_string()).and_modify(|x| {
-            x.remove(to);
-        });
-        self.connections.entry(to.to_string()).and_modify(|x| {
-            x.remove(from);
-        });
-    }
-
     fn edges(&self) -> impl Iterator<Item = (&str, &str)> {
         self.connections.iter().flat_map(|(from, connections)| {
             connections
@@ -59,57 +54,62 @@ impl Graph {
                     from < to
                 })
                 .map(move |to| (from.as_ref(), to.as_ref()))
+                .collect::<Vec<_>>() // for size_hint()
         })
     }
 
-    fn connected_components(&self) -> Vec<usize> {
-        let starts = self.connections.keys().collect::<Vec<_>>();
-        let components = connected_components(&starts[..], |&vertex| {
-            self.connections.get(vertex).into_iter().flatten()
-        });
-        components
-            .into_iter()
-            .map(|component| component.len())
-            .collect()
-    }
-}
+    /// Remove the edge `(from, to)` from the graph, and replace it with a new node
+    /// that is connected with all nodes connected to `from` or `to` in the original graph.
+    /// https://en.wikipedia.org/wiki/Karger%27s_algorithm#Contraction_algorithm
+    fn contract(&mut self, from: &str, to: &str) {
+        // Merge `from` connections with `to` connections.
+        let to_connections = self.connections.remove(to).unwrap();
+        let from_connections = self.connections.get_mut(from).unwrap();
+        from_connections.extend(to_connections);
+        from_connections.retain(|x| x != from && x != to); // no self-loops
 
-fn combinations<T>(edges: &[T]) -> impl Iterator<Item = [&T; 3]> {
-    edges
-        .iter()
-        .enumerate()
-        .flat_map(move |(first_index, first)| {
-            edges.iter().enumerate().skip(first_index + 1).flat_map(
-                move |(second_index, second)| {
-                    edges
-                        .iter()
-                        .skip(second_index + 1)
-                        .map(move |third| [first, second, third])
-                },
-            )
-        })
-}
+        // Merge weights.
+        *self.weights.get_mut(from).unwrap() += self.weights.remove(to).unwrap();
 
-fn split_graph(graph: &Graph) -> (usize, usize) {
-    let edges = graph.edges().collect::<Vec<_>>();
-    for edges_to_remove in combinations(&edges) {
-        let mut graph = graph.clone();
-        for (from, to) in edges_to_remove {
-            graph.remove(from, to);
-        }
-        match graph.connected_components()[..] {
-            [first, second] => {
-                return (first, second);
-            }
-            [_first] => {
-                // Graph is still fully connected, keep going
-            }
-            ref result => {
-                panic!("Graph was split into {} components?!", result.len())
+        // Replace `to` with `from` in the rest of the graph.
+        for (_, connections) in self.connections.iter_mut() {
+            for other in connections.iter_mut() {
+                if other == to {
+                    *other = from.to_string();
+                }
             }
         }
     }
-    panic!("Cannot split graph");
+}
+
+const SEED: u64 = 2;
+
+/// https://en.wikipedia.org/wiki/Karger's_algorithm
+fn split_graph(input: &Graph) -> (usize, usize) {
+    let mut rng = rand::rngs::StdRng::seed_from_u64(SEED);
+    let mut attempts = 0;
+    loop {
+        let mut graph = input.clone();
+        while graph.connections.len() > 2 {
+            let (from, to) = graph.edges().choose(&mut rng).unwrap();
+            let (from, to) = (from.to_string(), to.to_string());
+            graph.contract(&from, &to);
+        }
+        // Only two nodes left in the contracted graph
+        // Check if they're separated by exactly 3 edges
+        assert_eq!(graph.connections.len(), 2);
+        let connections = graph.connections.values().next().unwrap();
+        if connections.len() == 3 {
+            // Found it!
+            let weights = graph.weights.values().cloned().collect::<Vec<_>>();
+            assert_eq!(weights.len(), 2);
+            println!("Found after {attempts} attempts with seed {SEED}");
+            return (weights[0], weights[1]);
+        } else {
+            // Accidentally merged the wrong two nodes. Try again.
+            attempts += 1;
+        }
+    }
 }
 
 #[cfg(test)]
