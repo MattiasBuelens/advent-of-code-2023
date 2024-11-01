@@ -62,11 +62,15 @@ impl Graph {
         })
     }
 
-    fn connected_components(&self) -> Vec<HashSet<&String>> {
+    fn connected_components(&self) -> Vec<usize> {
         let starts = self.connections.keys().collect::<Vec<_>>();
-        connected_components(&starts[..], |&vertex| {
+        let components = connected_components(&starts[..], |&vertex| {
             self.connections.get(vertex).into_iter().flatten()
-        })
+        });
+        components
+            .into_iter()
+            .map(|component| component.len())
+            .collect()
     }
 }
 
@@ -93,14 +97,14 @@ fn split_graph(graph: &Graph) -> (usize, usize) {
         for (from, to) in edges_to_remove {
             graph.remove(from, to);
         }
-        match &graph.connected_components()[..] {
+        match graph.connected_components()[..] {
             [first, second] => {
-                return (first.len(), second.len());
+                return (first, second);
             }
             [_first] => {
                 // Graph is still fully connected, keep going
             }
-            result => {
+            ref result => {
                 panic!("Graph was split into {} components?!", result.len())
             }
         }
