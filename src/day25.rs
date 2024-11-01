@@ -95,7 +95,7 @@ impl Graph {
     }
 }
 
-const SEED: u64 = 2;
+const SEED: u64 = 1;
 
 /// https://en.wikipedia.org/wiki/Karger's_algorithm
 fn split_graph(input: &Graph) -> (usize, usize) {
