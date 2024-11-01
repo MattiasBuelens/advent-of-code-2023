@@ -1,16 +1,19 @@
 use std::collections::HashMap;
 
 use aoc_runner_derive::{aoc, aoc_generator};
+use nohash_hasher::IntMap;
 use rand::seq::IteratorRandom;
 use rand::SeedableRng;
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Copy, Clone)]
 struct NodeId(u64);
 
+impl nohash_hasher::IsEnabled for NodeId {}
+
 #[derive(Debug, Default, Clone)]
 struct Graph {
-    connections: HashMap<NodeId, Vec<NodeId>>,
-    weights: HashMap<NodeId, usize>,
+    connections: IntMap<NodeId, Vec<NodeId>>,
+    weights: IntMap<NodeId, usize>,
 }
 
 impl Graph {
