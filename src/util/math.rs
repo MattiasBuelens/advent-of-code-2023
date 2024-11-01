@@ -1,4 +1,4 @@
-use super::num::Num;
+use super::Num;
 
 #[allow(dead_code)]
 pub fn gcd<T: Num>(mut a: T, mut b: T) -> T {
