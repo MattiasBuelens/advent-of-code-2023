@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 
 use aoc_runner_derive::{aoc, aoc_generator};
-use pathfinding::prelude::dijkstra_all;
+use pathfinding::prelude::bfs_reach;
 
 use crate::util::Vector2D;
 
@@ -89,36 +89,42 @@ impl Hash for State {
 }
 
 fn count_wrapping_reachable(garden: &Garden, steps: usize) -> usize {
-    let result = dijkstra_all(
-        &State {
-            pos: garden.start,
-            steps: 0,
-        },
-        |state| {
-            if state.steps == steps {
-                return vec![];
+    let start = State {
+        pos: garden.start,
+        steps: 0,
+    };
+    let reachable = bfs_reach(start, |&state| {
+        state.pos.neighbours().filter_map(move |next_pos| {
+            let wrapped_pos = Vector2D::new(
+                next_pos.x().rem_euclid(garden.width),
+                next_pos.y().rem_euclid(garden.height),
+            );
+            if !garden.rocks.contains(&wrapped_pos) {
+                let next_state = State {
+                    pos: next_pos,
+                    steps: state.steps + 1,
+                };
+                Some(next_state)
+            } else {
+                None
             }
-            state
-                .pos
-                .neighbours()
-                .filter_map(|next_pos| {
-                    let wrapped_pos =
-                        Vector2D::new(next_pos.x() % garden.width, next_pos.y() % garden.height);
-                    if !garden.rocks.contains(&wrapped_pos) {
-                        let next_state = State {
-                            pos: next_pos,
-                            steps: state.steps + 1,
-                        };
-                        Some((next_state, 1))
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>()
-        },
-    );
-    dbg!(result.len());
-    0
+        })
+    });
+    let mut reachable_plots = HashSet::<Vector2D>::new();
+    // Must have same parity
+    let parity = steps % 2;
+    if parity == 0 {
+        reachable_plots.insert(start.pos);
+    }
+    for state in reachable {
+        if state.steps > steps {
+            break;
+        }
+        if state.steps % 2 == parity {
+            reachable_plots.insert(state.pos);
+        }
+    }
+    reachable_plots.len()
 }
 
 #[aoc(day21, part2)]
@@ -150,12 +156,12 @@ mod tests {
     #[test]
     fn part2_example() {
         let garden = parse(INPUT);
-        assert_ne!(count_wrapping_reachable(&garden, 6), 16);
-        assert_ne!(count_wrapping_reachable(&garden, 10), 50);
-        assert_ne!(count_wrapping_reachable(&garden, 50), 1594);
-        assert_ne!(count_wrapping_reachable(&garden, 100), 6536);
-        assert_ne!(count_wrapping_reachable(&garden, 500), 167004);
-        // assert_ne!(count_wrapping_reachable(&garden, 1000), 668697);
-        // assert_ne!(count_wrapping_reachable(&garden, 5000), 16733044);
+        assert_eq!(count_wrapping_reachable(&garden, 6), 16);
+        assert_eq!(count_wrapping_reachable(&garden, 10), 50);
+        assert_eq!(count_wrapping_reachable(&garden, 50), 1594);
+        assert_eq!(count_wrapping_reachable(&garden, 100), 6536);
+        assert_eq!(count_wrapping_reachable(&garden, 500), 167004);
+        // assert_eq!(count_wrapping_reachable(&garden, 1000), 668697);
+        // assert_eq!(count_wrapping_reachable(&garden, 5000), 16733044);
     }
 }
