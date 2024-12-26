@@ -1,10 +1,10 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use aoc_runner_derive::{aoc, aoc_generator};
 use derivative::Derivative;
 use pathfinding::prelude::bfs_reach;
 
-use crate::util::Vector2D;
+use crate::util::{Direction, Vector2D};
 
 struct Garden {
     width: i32,
@@ -72,11 +72,11 @@ fn find_local_reachable(garden: &Garden, start: State) -> impl Iterator<Item = S
     })
 }
 
-fn count_reachable(garden: &Garden, steps: usize) -> usize {
+fn count_reachable(garden: &Garden, start: Vector2D, steps: usize) -> usize {
     find_local_reachable(
         garden,
         State {
-            local_pos: garden.start,
+            local_pos: start,
             ..Default::default()
         },
     )
@@ -90,32 +90,103 @@ fn count_reachable(garden: &Garden, steps: usize) -> usize {
 
 #[aoc(day21, part1)]
 fn part1(garden: &Garden) -> usize {
-    count_reachable(garden, 64)
+    count_reachable(garden, garden.start,64)
 }
 
+struct ReachableFromEdge {
+    // The start position, on the edge
+    start: Vector2D,
+    // The closest position on all 4 other edges, with their associated cost
+    edges: [(Vector2D, usize); Direction::COUNT],
+    // The total number of plots reachable with an odd number of steps
+    odd: usize,
+    // The total number of plots reachable with an even number of steps
+    even: usize,
+}
+
+impl ReachableFromEdge {
+    fn closest_edge(&self, dir: Direction) -> (Vector2D, usize) {
+        self.edges[dir.index() as usize]
+    }
+}
+
+fn find_reachable_from_edge(garden: &Garden, start: Vector2D) -> ReachableFromEdge {
+    let mut edges = HashMap::<Direction, (Vector2D, usize)>::new();
+    let mut odd = 0;
+    let mut even = 0;
+    let reachable = find_local_reachable(
+        garden,
+        State {
+            local_pos: garden.start,
+            ..Default::default()
+        },
+    );
+    for state in reachable {
+        // Update totals
+        if state.steps % 2 == 0 {
+            even += 1;
+        } else {
+            odd += 1;
+        }
+        // Update the closest position along left or right edge
+        if state.local_pos.x() == 0 || state.local_pos.x() == garden.width - 1 {
+            let dir = if state.local_pos.x() == 0 {
+                Direction::W
+            } else {
+                Direction::E
+            };
+            let existing = edges.entry(dir).or_insert((state.local_pos, state.steps));
+            if state.steps < existing.1 {
+                *existing = (state.local_pos, state.steps);
+            }
+        }
+        // Update the closest position along top or bottom edge
+        if state.local_pos.y() == 0 || state.local_pos.y() == garden.height - 1 {
+            let dir = if state.local_pos.y() == 0 {
+                Direction::N
+            } else {
+                Direction::S
+            };
+            let existing = edges.entry(dir).or_insert((state.local_pos, state.steps));
+            if state.steps < existing.1 {
+                *existing = (state.local_pos, state.steps);
+            }
+        }
+    }
+    let edges = Direction::all()
+        .into_iter()
+        .map(|dir| *edges.get(&dir).unwrap())
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
+    ReachableFromEdge {
+        start,
+        edges,
+        odd,
+        even,
+    }
+}
+
+impl Garden {    
+    fn is_edge(&self, pos: Vector2D) -> bool {
+        pos.x() == 0 || pos.x() == self.width - 1 || pos.y() == 0 || pos.y() == self.height - 1
+    }
+}
+
+fn find_wrapping_reachable(garden: &Garden, start: State, steps: usize) -> impl Iterator<Item = State> + '_ {}
+
 fn count_wrapping_reachable(garden: &Garden, steps: usize) -> usize {
+    // Pre-compute the shortest path from any edge plot to any other plot within the local grid.
+    let mut reachable_from_edge = HashMap::<Vector2D, ReachableFromEdge>::new();
     let start = State {
         local_pos: garden.start,
         ..Default::default()
     };
-    let reachable = bfs_reach(start, |&state| {
-        state.local_pos.neighbours().filter_map(move |next_pos| {
-            let wrapped_pos = Vector2D::new(
-                next_pos.x().rem_euclid(garden.width),
-                next_pos.y().rem_euclid(garden.height),
-            );
-            if !garden.rocks.contains(&wrapped_pos) {
-                let next_state = State {
-                    local_pos: next_pos,
-                    steps: state.steps + 1,
-                    ..state
-                };
-                Some(next_state)
-            } else {
-                None
-            }
-        })
-    });
+    // Explore the local grid
+    let mut count = 0;
+    let mut grids_seen = HashSet::<Vector2D>::new();
+    let reachable = find_local_reachable(garden, start);
+        
     let mut reachable_plots = HashSet::<Vector2D>::new();
     let parity = steps % 2;
     for state in reachable {
@@ -154,11 +225,11 @@ mod tests {
     #[test]
     fn part1_example() {
         let garden = parse(INPUT);
-        assert_eq!(count_reachable(&garden, 0), 1);
-        assert_eq!(count_reachable(&garden, 1), 2);
-        assert_eq!(count_reachable(&garden, 2), 4);
-        assert_eq!(count_reachable(&garden, 3), 6);
-        assert_eq!(count_reachable(&garden, 6), 16);
+        assert_eq!(count_reachable(&garden, garden.start, 0), 1);
+        assert_eq!(count_reachable(&garden, garden.start, 1), 2);
+        assert_eq!(count_reachable(&garden, garden.start, 2), 4);
+        assert_eq!(count_reachable(&garden, garden.start, 3), 6);
+        assert_eq!(count_reachable(&garden, garden.start, 6), 16);
     }
 
     #[test]
