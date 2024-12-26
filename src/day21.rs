@@ -1,7 +1,7 @@
 use std::collections::HashSet;
-use std::hash::{Hash, Hasher};
 
 use aoc_runner_derive::{aoc, aoc_generator};
+use derivative::Derivative;
 use pathfinding::prelude::bfs_reach;
 
 use crate::util::Vector2D;
@@ -43,24 +43,13 @@ fn parse(input: &str) -> Garden {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, Derivative)]
+#[derivative(PartialEq, Hash)]
 struct State {
     pos: Vector2D,
+    #[derivative(PartialEq = "ignore")]
+    #[derivative(Hash = "ignore")]
     steps: usize,
-}
-
-impl PartialEq<Self> for State {
-    fn eq(&self, other: &Self) -> bool {
-        self.pos == other.pos
-    }
-}
-
-impl Eq for State {}
-
-impl Hash for State {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.pos.hash(state)
-    }
 }
 
 fn find_reachable(garden: &Garden, start: Vector2D) -> impl Iterator<Item = State> + '_ {
