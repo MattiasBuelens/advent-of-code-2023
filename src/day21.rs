@@ -54,25 +54,22 @@ struct State {
 }
 
 fn find_local_reachable(garden: &Garden, start: State) -> impl Iterator<Item = State> + '_ {
-    bfs_reach(
-        start,
-        move |&state| {
-            state.local_pos.neighbours().filter_map(move |next_pos| {
-                if (0..garden.width).contains(&next_pos.x())
-                    && (0..garden.height).contains(&next_pos.y())
-                    && !garden.rocks.contains(&next_pos)
-                {
-                    Some(State {
-                        local_pos: next_pos,
-                        grid_pos: state.grid_pos,
-                        steps: state.steps + 1,
-                    })
-                } else {
-                    None
-                }
-            })
-        }
-    )
+    bfs_reach(start, move |&state| {
+        state.local_pos.neighbours().filter_map(move |next_pos| {
+            if (0..garden.width).contains(&next_pos.x())
+                && (0..garden.height).contains(&next_pos.y())
+                && !garden.rocks.contains(&next_pos)
+            {
+                Some(State {
+                    local_pos: next_pos,
+                    grid_pos: state.grid_pos,
+                    steps: state.steps + 1,
+                })
+            } else {
+                None
+            }
+        })
+    })
 }
 
 fn count_reachable(garden: &Garden, steps: usize) -> usize {
@@ -83,12 +80,12 @@ fn count_reachable(garden: &Garden, steps: usize) -> usize {
             ..Default::default()
         },
     )
-        .take_while(|state| state.steps <= steps)
-        .filter(|state| {
-            // Must have same parity
-            &state.steps % 2 == steps % 2
-        })
-        .count()
+    .take_while(|state| state.steps <= steps)
+    .filter(|state| {
+        // Must have same parity
+        &state.steps % 2 == steps % 2
+    })
+    .count()
 }
 
 #[aoc(day21, part1)]
