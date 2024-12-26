@@ -43,41 +43,46 @@ fn parse(input: &str) -> Garden {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, Derivative)]
+#[derive(Debug, Default, Copy, Clone, Eq, Derivative)]
 #[derivative(PartialEq, Hash)]
 struct State {
-    pos: Vector2D,
+    local_pos: Vector2D,
+    grid_pos: Vector2D,
     #[derivative(PartialEq = "ignore")]
     #[derivative(Hash = "ignore")]
     steps: usize,
 }
 
-fn find_reachable(garden: &Garden, start: Vector2D) -> impl Iterator<Item = State> + '_ {
+fn find_local_reachable(garden: &Garden, start: State) -> impl Iterator<Item = State> + '_ {
     bfs_reach(
-        State {
-            pos: start,
-            steps: 0,
-        },
+        start,
         move |&state| {
-            state.pos.neighbours().filter_map(move |next_pos| {
+            state.local_pos.neighbours().filter_map(move |next_pos| {
                 if (0..garden.width).contains(&next_pos.x())
                     && (0..garden.height).contains(&next_pos.y())
                     && !garden.rocks.contains(&next_pos)
                 {
                     Some(State {
-                        pos: next_pos,
+                        local_pos: next_pos,
+                        grid_pos: state.grid_pos,
                         steps: state.steps + 1,
                     })
                 } else {
                     None
                 }
             })
-        },
+        }
     )
 }
 
 fn count_reachable(garden: &Garden, steps: usize) -> usize {
-    find_reachable(garden, garden.start)
+    find_local_reachable(
+        garden,
+        State {
+            local_pos: garden.start,
+            ..Default::default()
+        },
+    )
         .take_while(|state| state.steps <= steps)
         .filter(|state| {
             // Must have same parity
@@ -93,19 +98,20 @@ fn part1(garden: &Garden) -> usize {
 
 fn count_wrapping_reachable(garden: &Garden, steps: usize) -> usize {
     let start = State {
-        pos: garden.start,
-        steps: 0,
+        local_pos: garden.start,
+        ..Default::default()
     };
     let reachable = bfs_reach(start, |&state| {
-        state.pos.neighbours().filter_map(move |next_pos| {
+        state.local_pos.neighbours().filter_map(move |next_pos| {
             let wrapped_pos = Vector2D::new(
                 next_pos.x().rem_euclid(garden.width),
                 next_pos.y().rem_euclid(garden.height),
             );
             if !garden.rocks.contains(&wrapped_pos) {
                 let next_state = State {
-                    pos: next_pos,
+                    local_pos: next_pos,
                     steps: state.steps + 1,
+                    ..state
                 };
                 Some(next_state)
             } else {
@@ -121,7 +127,7 @@ fn count_wrapping_reachable(garden: &Garden, steps: usize) -> usize {
         }
         // Must have same parity
         if state.steps % 2 == parity {
-            reachable_plots.insert(state.pos);
+            reachable_plots.insert(state.local_pos);
         }
     }
     reachable_plots.len()
