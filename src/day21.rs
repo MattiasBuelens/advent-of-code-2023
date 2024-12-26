@@ -43,31 +43,6 @@ fn parse(input: &str) -> Garden {
     }
 }
 
-fn count_reachable(garden: &Garden, steps: usize) -> usize {
-    let mut positions = HashSet::new();
-    positions.insert(garden.start);
-    for _ in 0..steps {
-        let mut new_positions = HashSet::with_capacity(positions.capacity());
-        for pos in positions {
-            for next_pos in pos.neighbours() {
-                if (0..garden.width).contains(&next_pos.x())
-                    && (0..garden.height).contains(&next_pos.y())
-                    && !garden.rocks.contains(&next_pos)
-                {
-                    new_positions.insert(next_pos);
-                }
-            }
-        }
-        positions = new_positions;
-    }
-    positions.len()
-}
-
-#[aoc(day21, part1)]
-fn part1(garden: &Garden) -> usize {
-    count_reachable(garden, 64)
-}
-
 #[derive(Debug, Copy, Clone)]
 struct State {
     pos: Vector2D,
@@ -86,6 +61,45 @@ impl Hash for State {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.pos.hash(state)
     }
+}
+
+fn find_reachable(garden: &Garden, start: Vector2D) -> impl Iterator<Item = State> + '_ {
+    bfs_reach(
+        State {
+            pos: start,
+            steps: 0,
+        },
+        move |&state| {
+            state.pos.neighbours().filter_map(move |next_pos| {
+                if (0..garden.width).contains(&next_pos.x())
+                    && (0..garden.height).contains(&next_pos.y())
+                    && !garden.rocks.contains(&next_pos)
+                {
+                    Some(State {
+                        pos: next_pos,
+                        steps: state.steps + 1,
+                    })
+                } else {
+                    None
+                }
+            })
+        },
+    )
+}
+
+fn count_reachable(garden: &Garden, steps: usize) -> usize {
+    find_reachable(garden, garden.start)
+        .take_while(|state| state.steps <= steps)
+        .filter(|state| {
+            // Must have same parity
+            &state.steps % 2 == steps % 2
+        })
+        .count()
+}
+
+#[aoc(day21, part1)]
+fn part1(garden: &Garden) -> usize {
+    count_reachable(garden, 64)
 }
 
 fn count_wrapping_reachable(garden: &Garden, steps: usize) -> usize {
