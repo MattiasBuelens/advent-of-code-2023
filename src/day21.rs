@@ -111,15 +111,12 @@ fn count_wrapping_reachable(garden: &Garden, steps: usize) -> usize {
         })
     });
     let mut reachable_plots = HashSet::<Vector2D>::new();
-    // Must have same parity
     let parity = steps % 2;
-    if parity == 0 {
-        reachable_plots.insert(start.pos);
-    }
     for state in reachable {
         if state.steps > steps {
             break;
         }
+        // Must have same parity
         if state.steps % 2 == parity {
             reachable_plots.insert(state.pos);
         }
@@ -150,12 +147,21 @@ mod tests {
 
     #[test]
     fn part1_example() {
-        assert_eq!(count_reachable(&parse(INPUT), 6), 16);
+        let garden = parse(INPUT);
+        assert_eq!(count_reachable(&garden, 0), 1);
+        assert_eq!(count_reachable(&garden, 1), 2);
+        assert_eq!(count_reachable(&garden, 2), 4);
+        assert_eq!(count_reachable(&garden, 3), 6);
+        assert_eq!(count_reachable(&garden, 6), 16);
     }
 
     #[test]
     fn part2_example() {
         let garden = parse(INPUT);
+        assert_eq!(count_wrapping_reachable(&garden, 0), 1);
+        assert_eq!(count_wrapping_reachable(&garden, 1), 2);
+        assert_eq!(count_wrapping_reachable(&garden, 2), 4);
+        assert_eq!(count_wrapping_reachable(&garden, 3), 6);
         assert_eq!(count_wrapping_reachable(&garden, 6), 16);
         assert_eq!(count_wrapping_reachable(&garden, 10), 50);
         assert_eq!(count_wrapping_reachable(&garden, 50), 1594);
