@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use aoc_runner_derive::{aoc, aoc_generator};
 use derivative::Derivative;
@@ -127,16 +127,87 @@ fn count_wrapping_reachable(garden: &Garden, steps: usize) -> usize {
     reachable_plots.len()
 }
 
+fn count_wrapping_reachable_optimized(garden: &Garden, steps: usize) -> usize {
+    // https://github.com/villuna/aoc23/wiki/A-Geometric-solution-to-advent-of-code-2023,-day-21
+    assert_eq!(garden.width, garden.height);
+    assert_eq!(garden.width % 2, 1);
+    // Distance to nearest edge is the same in all directions.
+    // When we travel to the edge, the remaining number of steps is a multiple of the garden's size.
+    let distance_to_edge = steps % (garden.width as usize);
+    assert_eq!(distance_to_edge, (garden.width as usize) / 2);
+    let reachable = find_reachable(garden, garden.start)
+        .map(|state| (state.pos, state.steps))
+        .collect::<Vec<_>>();
+    // Split by parity. (See below.)
+    let even_full = reachable
+        .iter()
+        .filter(|&&(_, steps)| steps % 2 == 0)
+        .count();
+    let odd_full = reachable
+        .iter()
+        .filter(|&&(_, steps)| steps % 2 == 1)
+        .count();
+    let even_corner = reachable
+        .iter()
+        .filter(|&&(_, steps)| steps % 2 == 0 && steps > distance_to_edge)
+        .count();
+    let odd_corner = reachable
+        .iter()
+        .filter(|&&(_, steps)| steps % 2 == 1 && steps > distance_to_edge)
+        .count();
+    let distances = reachable.into_iter().collect::<HashMap<_, _>>();
+    assert_eq!(
+        distance_to_edge,
+        *distances.get(&Vector2D::new(0, garden.start.y())).unwrap()
+    );
+    assert_eq!(
+        distance_to_edge,
+        *distances
+            .get(&Vector2D::new(garden.width - 1, garden.start.y()))
+            .unwrap()
+    );
+    assert_eq!(
+        distance_to_edge,
+        *distances.get(&Vector2D::new(garden.start.x(), 0)).unwrap()
+    );
+    assert_eq!(
+        distance_to_edge,
+        *distances
+            .get(&Vector2D::new(garden.start.x(), garden.height - 1))
+            .unwrap()
+    );
+    // After traveling to the first square's edge, we'll travel an integer number of squares
+    // in all directions. This forms a "diamond" pattern, where the last square in each direction
+    // is only partially reachable.
+    assert_eq!((steps - distance_to_edge) % (garden.width as usize), 0);
+    let radius = (steps - distance_to_edge) / (garden.width as usize);
+    // We must perform an odd number of steps.
+    // For the first square, we take the number of positions reachable in an odd number of steps.
+    // Since the grid size is odd, the parity flips at every edge between two squares.
+    // So the square to the right of the first square is even, the square to its right is odd, etc.
+    // For a diamond with even radius R, there are (R+1)^2 fully covered even squares and R^2 odd ones.
+    let full_odd_squares = (radius + 1) * (radius + 1);
+    let full_even_squares = radius * radius;
+    // Along each edge of the diamond, there are (R+1) odd corners that need to be cut away
+    // and R even corners that need to be added in.
+    // Multiply by 4 to get all edges, and these regions correspond to (R+1) odd plots
+    // that are further away from the start than the nearest edge, and R even plots.
+    let partial_odd_squares = radius + 1;
+    let partial_even_squares = radius;
+    full_odd_squares * odd_full + full_even_squares * even_full - partial_odd_squares * odd_corner
+        + partial_even_squares * even_corner
+}
+
 #[aoc(day21, part2)]
 fn part2(garden: &Garden) -> usize {
-    count_wrapping_reachable(garden, 26_501_365)
+    count_wrapping_reachable_optimized(garden, 26_501_365)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    const INPUT: &str = "...........
+    const EXAMPLE: &str = "...........
 .....###.#.
 .###.##..#.
 ..#.#...#..
@@ -147,10 +218,11 @@ mod tests {
 .##.#.####.
 .##..##.##.
 ...........";
+    const INPUT: &str = include_str!("../input/2023/day21.txt");
 
     #[test]
     fn part1_example() {
-        let garden = parse(INPUT);
+        let garden = parse(EXAMPLE);
         assert_eq!(count_reachable(&garden, 0), 1);
         assert_eq!(count_reachable(&garden, 1), 2);
         assert_eq!(count_reachable(&garden, 2), 4);
@@ -160,7 +232,7 @@ mod tests {
 
     #[test]
     fn part2_example() {
-        let garden = parse(INPUT);
+        let garden = parse(EXAMPLE);
         assert_eq!(count_wrapping_reachable(&garden, 0), 1);
         assert_eq!(count_wrapping_reachable(&garden, 1), 2);
         assert_eq!(count_wrapping_reachable(&garden, 2), 4);
@@ -172,5 +244,27 @@ mod tests {
         assert_eq!(count_wrapping_reachable(&garden, 500), 167004);
         // assert_eq!(count_wrapping_reachable(&garden, 1000), 668697);
         // assert_eq!(count_wrapping_reachable(&garden, 5000), 16733044);
+    }
+
+    #[test]
+    fn part2_input() {
+        let garden = parse(INPUT);
+        assert_eq!(count_wrapping_reachable(&garden, 131 + 65), 34234);
+        assert_eq!(count_wrapping_reachable(&garden, 131 * 5 + 65), 459046);
+        assert_eq!(count_wrapping_reachable(&garden, 131 * 10 + 65), 1672171);
+    }
+
+    #[test]
+    fn part2_input_optimized() {
+        let garden = parse(INPUT);
+        assert_eq!(count_wrapping_reachable_optimized(&garden, 131 + 65), 34234);
+        assert_eq!(
+            count_wrapping_reachable_optimized(&garden, 131 * 5 + 65),
+            459046
+        );
+        assert_eq!(
+            count_wrapping_reachable_optimized(&garden, 131 * 10 + 65),
+            1672171
+        );
     }
 }
